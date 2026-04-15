@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-labelledby="title desc">
+  <title id="title">LeadMachine Logo</title>
+  <desc id="desc">Minimal square logo for LeadMachine with LM monogram and accent dot.</desc>
+  <rect width="1024" height="1024" rx="224" fill="#F6F1E9"/>
+  <rect x="112" y="112" width="800" height="800" rx="184" fill="#111111"/>
+  <circle cx="756" cy="268" r="54" fill="#E36A2D"/>
+  <path
+    d="M 288 300 V 736 H 468"
+    fill="none"
+    stroke="#FBF7F1"
+    stroke-width="74"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <path
+    d="M 548 736 V 300 L 674 522 L 800 300 V 736"
+    fill="none"
+    stroke="#FBF7F1"
+    stroke-width="74"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+</svg>

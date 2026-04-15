@@ -1,36 +1,75 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# LeadMachine
 
-## Getting Started
+LeadMachine est un MVP personnel pour Brice Faradji:
 
-First, run the development server:
+- generation de brouillons LinkedIn a partir d'une idee brute
+- edition et validation manuelle
+- planification de publication
+- publication automatique sur LinkedIn apres approbation
+- stockage local rapide pour demarrer sans brancher une base
+
+## Stack
+
+- Next.js 16 App Router
+- React 19
+- stockage local JSON dans `.data/leadmachine.json`
+- OpenAI Responses API en option
+- OAuth LinkedIn + `w_member_social`
+- cron Vercel pour publier les posts programmes
+
+## Configuration
+
+1. Copier le template d'environnement:
+
+```bash
+cp .env.example .env.local
+```
+
+2. Renseigner au minimum:
+
+```bash
+APP_URL=http://localhost:3000
+CRON_SECRET=une-cle-secrete
+```
+
+3. Pour la generation IA, ajouter:
+
+```bash
+OPENAI_API_KEY=...
+OPENAI_MODEL=gpt-4o-mini
+```
+
+4. Pour la connexion LinkedIn, ajouter:
+
+```bash
+LINKEDIN_CLIENT_ID=...
+LINKEDIN_CLIENT_SECRET=...
+LINKEDIN_REDIRECT_URI=http://localhost:3000/api/linkedin/callback
+LINKEDIN_API_VERSION=202603
+```
+
+## Developpement
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Puis ouvrir `http://localhost:3000`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Publication automatique
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- Tu generes un post.
+- Tu le relis et l'approuves.
+- Tu choisis une date.
+- Le cron appelle `/api/cron/publish`.
+- La route publie tous les posts `scheduled` dont la date est echue.
 
-## Learn More
+En local, tu peux tester le cron avec:
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+curl -H "Authorization: Bearer $CRON_SECRET" http://localhost:3000/api/cron/publish
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Limite actuelle
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Le stockage est local pour aller vite. Pour une vraie mise en production multi-session, remplace `.data/leadmachine.json` par une base persistante.
