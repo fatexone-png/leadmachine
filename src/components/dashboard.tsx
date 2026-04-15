@@ -68,7 +68,8 @@ const signalStatusCopy: Record<SignalStatus, string> = {
 export function Dashboard({ data, notices, environment }: DashboardProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [activeTab, setActiveTab] = useState<Tab>("pilotage");
+  const isNewUser = !data.brandProfile.bio && data.drafts.length === 0;
+  const [activeTab, setActiveTab] = useState<Tab>(isNewUser ? "fondations" : "studio");
   const [showMobileDetail, setShowMobileDetail] = useState(false);
   const [toast, setToast] = useState<{ message: string; isError: boolean } | null>(null);
   const [copiedCommentIndex, setCopiedCommentIndex] = useState<number | null>(null);
@@ -90,6 +91,15 @@ export function Dashboard({ data, notices, environment }: DashboardProps) {
     sourceText: "",
     imageContext: "",
   });
+  // Style sources management
+  const [newSourceUrl, setNewSourceUrl] = useState("");
+  const [newSourceLabel, setNewSourceLabel] = useState("");
+  const [scrapingSourceId, setScrapingSourceId] = useState<string | null>(null);
+  const styleSources = data.brandProfile.styleSources ?? [];
+  // Generate success feedback
+  const [generateSuccess, setGenerateSuccess] = useState(false);
+  // Profile advanced accordion
+  const [showAdvancedProfile, setShowAdvancedProfile] = useState(false);
 
   const sourceContext = sourceContextDraft ?? data.settings.sourceContext;
   const selectedSignal =
@@ -174,9 +184,87 @@ export function Dashboard({ data, notices, environment }: DashboardProps) {
     );
   }
 
+  function handleScrapeSource(sourceId: string, url: string, label: string) {
+    setScrapingSourceId(sourceId);
+    startTransition(async () => {
+      const response = await fetch("/api/profile/scrape", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url, label, sourceId }),
+      });
+      const payload = (await response.json().catch(() => ({}))) as {
+        error?: string;
+        message?: string;
+        toneKeywords?: string[];
+      };
+      setScrapingSourceId(null);
+      if (!response.ok) {
+        showToast(payload.error || "Impossible d'analyser cette source.", true);
+        return;
+      }
+      showToast(payload.message || "Source analysée.");
+      router.refresh();
+    });
+  }
+
+  function handleAddSource() {
+    if (!newSourceUrl.trim()) return;
+    const label = newSourceLabel.trim() || new URL(newSourceUrl.startsWith("http") ? newSourceUrl : `https://${newSourceUrl}`).hostname;
+    const id = crypto.randomUUID();
+    // Optimistically add then scrape
+    runMutation(
+      "/api/profile",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...data.brandProfile,
+          audiences: data.brandProfile.audiences.join("\n"),
+          offers: data.brandProfile.offers.join("\n"),
+          proofPoints: data.brandProfile.proofPoints.join("\n"),
+          contentPillars: data.brandProfile.contentPillars.join("\n"),
+          preferredCallsToAction: data.brandProfile.preferredCallsToAction.join("\n"),
+          styleSamples: data.brandProfile.styleSamples.join("\n\n---\n\n"),
+          styleSources: [
+            ...styleSources,
+            { id, url: newSourceUrl.trim(), label, scrapedAt: null, toneKeywords: [] },
+          ],
+        }),
+      },
+      undefined,
+      () => {
+        setNewSourceUrl("");
+        setNewSourceLabel("");
+        handleScrapeSource(id, newSourceUrl.trim(), label);
+      }
+    );
+  }
+
+  function handleRemoveSource(sourceId: string) {
+    runMutation(
+      "/api/profile",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...data.brandProfile,
+          audiences: data.brandProfile.audiences.join("\n"),
+          offers: data.brandProfile.offers.join("\n"),
+          proofPoints: data.brandProfile.proofPoints.join("\n"),
+          contentPillars: data.brandProfile.contentPillars.join("\n"),
+          preferredCallsToAction: data.brandProfile.preferredCallsToAction.join("\n"),
+          styleSamples: data.brandProfile.styleSamples.join("\n\n---\n\n"),
+          styleSources: styleSources.filter((s) => s.id !== sourceId),
+        }),
+      },
+      "Source supprimée."
+    );
+  }
+
   function handleGenerateSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const formData = new FormData(event.currentTarget);
+    setGenerateSuccess(false);
 
     runMutation(
       "/api/drafts/generate",
@@ -191,7 +279,12 @@ export function Dashboard({ data, notices, environment }: DashboardProps) {
           sourceContext,
         }),
       },
-      "Nouveau brouillon genere."
+      "Nouveau brouillon genere.",
+      () => {
+        setGenerateSuccess(true);
+        setShowMobileDetail(true);
+        window.setTimeout(() => setGenerateSuccess(false), 2200);
+      }
     );
   }
 
@@ -311,10 +404,15 @@ export function Dashboard({ data, notices, environment }: DashboardProps) {
 
   const selectedDraft = data.drafts.find((d) => d.id === selectedDraftId) ?? data.drafts[0] ?? null;
 
+  const isPaywalled = data.plan === "free" && data.postsPublished >= 5;
+
   return (
     <div className="relative flex h-screen flex-col overflow-hidden bg-background">
       {/* Subtle background */}
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(198,95,37,0.10),_transparent_40%),linear-gradient(180deg,_rgba(255,248,241,0.97),_rgba(244,239,230,0.99))]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(198,95,37,0.10),transparent_40%),linear-gradient(180deg,rgba(255,248,241,0.97),rgba(244,239,230,0.99))]" />
+
+      {/* ── Paywall overlay ── */}
+      {isPaywalled && <PaywallOverlay email={data.linkedin.email} />}
 
       {/* Toast */}
       {toast ? (
@@ -360,6 +458,29 @@ export function Dashboard({ data, notices, environment }: DashboardProps) {
             <span className={`h-2 w-2 rounded-full ${data.linkedin.connected ? "bg-emerald-500" : "bg-stone-300"}`} title="LinkedIn" />
             <span className={`h-2 w-2 rounded-full ${environment.cronConfigured ? "bg-emerald-500" : "bg-stone-300"}`} title="Auto" />
           </div>
+          {/* Déconnexion — toujours visible */}
+          {data.linkedin.connected && (
+            <button
+              type="button"
+              disabled={isPending}
+              onClick={() =>
+                runMutation(
+                  "/api/linkedin/disconnect",
+                  { method: "POST", headers: { "Content-Type": "application/json" } },
+                  "Compte LinkedIn déconnecté.",
+                  () => { window.location.href = "/"; }
+                )
+              }
+              className="flex items-center gap-1.5 rounded-full border border-black/10 bg-white px-3 py-1.5 text-xs font-semibold text-stone-600 transition hover:border-red-200 hover:bg-red-50 hover:text-red-700 disabled:opacity-40"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+              <span className="hidden sm:inline">Déconnecter</span>
+            </button>
+          )}
         </div>
       </header>
 
@@ -399,12 +520,29 @@ export function Dashboard({ data, notices, environment }: DashboardProps) {
         ))}
       </nav>
 
+      {/* ── Onboarding progress bar (after wizard, during setup) ── */}
+      {isNewUser && (data.brandProfile.websiteUrl || data.brandProfile.bio) && (
+        <div className="relative z-10 border-b border-black/6 bg-white/80 px-4 py-2 sm:px-5">
+          <div className="flex items-center gap-3">
+            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-stone-100">
+              <div
+                className="h-full rounded-full bg-accent transition-all duration-500"
+                style={{ width: `${[Boolean(data.brandProfile.websiteUrl), Boolean(data.brandProfile.bio), data.drafts.length > 0].filter(Boolean).length * 33.3}%` }}
+              />
+            </div>
+            <span className="text-xs font-semibold text-stone-500">
+              {[Boolean(data.brandProfile.websiteUrl), Boolean(data.brandProfile.bio), data.drafts.length > 0].filter(Boolean).length}/3 étapes
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* ── Content ── */}
       <div className="relative flex-1 overflow-hidden">
 
         {/* ── SUJETS ── */}
         {activeTab === "pilotage" ? (
-          <div className="flex h-full overflow-hidden">
+          <div className="flex h-full overflow-hidden animate-fade-in">
 
             {/* Left: signal list */}
             <div className={`${showMobileDetail ? "hidden sm:flex" : "flex"} w-full shrink-0 flex-col overflow-hidden border-r border-black/8 sm:w-80 xl:w-96`}>
@@ -537,7 +675,7 @@ export function Dashboard({ data, notices, environment }: DashboardProps) {
 
         {/* ── POSTS ── */}
         {activeTab === "studio" ? (
-          <div className="flex h-full overflow-hidden">
+          <div className="flex h-full overflow-hidden animate-fade-in">
 
             {/* Left: generate + pipeline */}
             <div className={`${showMobileDetail ? "hidden sm:flex" : "flex"} w-full shrink-0 flex-col overflow-hidden border-r border-black/8 sm:w-80 xl:w-96`}>
@@ -568,8 +706,22 @@ export function Dashboard({ data, notices, environment }: DashboardProps) {
                   <Field label="Call to action">
                     <input name="cta" defaultValue={data.brandProfile.preferredCallsToAction[0] || ""} className={inputClassName} />
                   </Field>
-                  <button type="submit" className={primaryButtonClassName} disabled={isPending}>
-                    {isPending ? "Génération en cours..." : "Générer le post"}
+                  <button
+                    type="submit"
+                    disabled={isPending}
+                    className={`${primaryButtonClassName} ${generateSuccess ? "animate-success-pop bg-emerald-600!" : ""}`}
+                  >
+                    {isPending ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <Spinner />
+                        Génération en cours…
+                      </span>
+                    ) : generateSuccess ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                        Post créé !
+                      </span>
+                    ) : "Générer le post"}
                   </button>
                   {data.drafts.length > 0 && (
                     <button
@@ -616,8 +768,12 @@ export function Dashboard({ data, notices, environment }: DashboardProps) {
               </div>
               <div className="flex-1 overflow-y-auto p-4 sm:p-6">
                 {data.drafts.length === 0 ? (
-                  <div className="flex h-full items-center justify-center">
-                    <p className="text-sm text-stone-400">Générez votre premier post depuis le panneau à gauche.</p>
+                  <div className="flex h-full flex-col items-center justify-center gap-4 px-6 text-center">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-full bg-accent-soft text-2xl">✍️</div>
+                    <div>
+                      <p className="text-base font-semibold text-stone-900">Votre premier post LinkedIn</p>
+                      <p className="mt-1 text-sm leading-6 text-stone-500">Décrivez votre idée à gauche — l'IA rédige un post dans votre voix en quelques secondes.</p>
+                    </div>
                   </div>
                 ) : selectedDraft ? (
                   <DraftCard
@@ -634,7 +790,7 @@ export function Dashboard({ data, notices, environment }: DashboardProps) {
 
         {/* ── MON PROFIL ── */}
         {activeTab === "fondations" ? (
-          <div className="flex h-full flex-col overflow-y-auto sm:flex-row sm:overflow-hidden">
+          <div className="flex h-full flex-col overflow-y-auto sm:flex-row sm:overflow-hidden animate-fade-in">
 
             {/* Left: LinkedIn + source */}
             <div className="flex w-full shrink-0 flex-col border-b border-black/8 sm:w-80 sm:border-b-0 sm:border-r sm:overflow-y-auto xl:w-96">
@@ -669,19 +825,142 @@ export function Dashboard({ data, notices, environment }: DashboardProps) {
                     </div>
                   </section>
 
-                  {/* Source context */}
+                  {/* ── Sources d'inspiration ── */}
                   <section className="grid gap-3">
-                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-stone-500">Contexte éditorial</p>
-                    <p className="text-xs leading-5 text-stone-500">Ce texte guide la génération de tous vos posts et commentaires.</p>
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-stone-500">Sources d'inspiration</p>
+                      <p className="mt-1 text-xs leading-5 text-stone-400">
+                        L'IA visite ces pages, capture leur plume et construit votre style éditorial unique.
+                      </p>
+                    </div>
+
+                    {/* Existing sources */}
+                    {styleSources.length > 0 && (
+                      <div className="grid gap-2">
+                        {styleSources.map((src) => (
+                          <div key={src.id} className="flex items-center gap-2 rounded-2xl border border-black/8 bg-white px-3 py-2.5">
+                            <div className="flex-1 min-w-0">
+                              <p className="truncate text-xs font-semibold text-stone-900">{src.label}</p>
+                              <p className="truncate text-[10px] text-stone-400">{src.url.replace(/https?:\/\//, "")}</p>
+                              {src.toneKeywords.length > 0 && (
+                                <div className="mt-1 flex flex-wrap gap-1">
+                                  {src.toneKeywords.slice(0, 4).map((kw) => (
+                                    <span key={kw} className="rounded-full bg-accent-soft px-1.5 py-0.5 text-[9px] font-medium text-stone-700">{kw}</span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex shrink-0 items-center gap-1.5">
+                              {src.scrapedAt ? (
+                                <span className="text-[10px] text-stone-400">
+                                  {new Date(src.scrapedAt).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" })}
+                                </span>
+                              ) : (
+                                <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700">Non analysé</span>
+                              )}
+                              <button
+                                type="button"
+                                title="Re-analyser"
+                                disabled={isPending || scrapingSourceId === src.id}
+                                onClick={() => handleScrapeSource(src.id, src.url, src.label)}
+                                className="rounded-full border border-black/10 px-2 py-0.5 text-[10px] font-semibold text-stone-600 transition hover:bg-stone-100 disabled:opacity-40"
+                              >
+                                {scrapingSourceId === src.id ? "…" : "↻"}
+                              </button>
+                              <button
+                                type="button"
+                                title="Supprimer"
+                                disabled={isPending}
+                                onClick={() => handleRemoveSource(src.id)}
+                                className="rounded-full border border-black/10 px-2 py-0.5 text-[10px] font-semibold text-red-500 transition hover:bg-red-50 disabled:opacity-40"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Add new source */}
+                    <div className="grid gap-2">
+                      <input
+                        type="url"
+                        value={newSourceUrl}
+                        onChange={(e) => setNewSourceUrl(e.target.value)}
+                        placeholder="https://monsite.fr ou linkedin.com/in/..."
+                        className={inputClassName}
+                      />
+                      <div className="flex gap-2">
+                        <input
+                          value={newSourceLabel}
+                          onChange={(e) => setNewSourceLabel(e.target.value)}
+                          placeholder="Nom (ex: Mon site, Confrère inspirant…)"
+                          className={`${inputClassName} flex-1`}
+                        />
+                        <button
+                          type="button"
+                          onClick={handleAddSource}
+                          disabled={isPending || !newSourceUrl.trim()}
+                          className="shrink-0 rounded-full bg-stone-950 px-4 py-2 text-xs font-semibold text-white transition hover:bg-stone-800 disabled:opacity-40"
+                        >
+                          + Ajouter
+                        </button>
+                      </div>
+                    </div>
+                  </section>
+
+                  {/* ── Ton & longueur ── */}
+                  <section className="grid gap-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-stone-500">Réglages de style IA</p>
+                    <Field label="Ton des posts">
+                      <select
+                        defaultValue={data.brandProfile.tonePreset ?? "direct"}
+                        onChange={(e) => runMutation("/api/profile", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ ...data.brandProfile, tonePreset: e.target.value, audiences: data.brandProfile.audiences.join("\n"), offers: data.brandProfile.offers.join("\n"), proofPoints: data.brandProfile.proofPoints.join("\n"), contentPillars: data.brandProfile.contentPillars.join("\n"), preferredCallsToAction: data.brandProfile.preferredCallsToAction.join("\n"), styleSamples: data.brandProfile.styleSamples.join("\n\n---\n\n"), styleSources }),
+                        }, "Ton mis à jour.")}
+                        className={inputClassName}
+                      >
+                        <option value="formal">Formel — ton expert, phrases structurées</option>
+                        <option value="direct">Direct — phrases courtes, impact immédiat</option>
+                        <option value="educational">Pédagogique — expliquer pour convaincre</option>
+                        <option value="storytelling">Storytelling — récit, émotion, narration</option>
+                      </select>
+                    </Field>
+                    <Field label="Longueur des posts">
+                      <select
+                        defaultValue={data.brandProfile.postLengthPreset ?? "medium"}
+                        onChange={(e) => runMutation("/api/profile", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ ...data.brandProfile, postLengthPreset: e.target.value, audiences: data.brandProfile.audiences.join("\n"), offers: data.brandProfile.offers.join("\n"), proofPoints: data.brandProfile.proofPoints.join("\n"), contentPillars: data.brandProfile.contentPillars.join("\n"), preferredCallsToAction: data.brandProfile.preferredCallsToAction.join("\n"), styleSamples: data.brandProfile.styleSamples.join("\n\n---\n\n"), styleSources }),
+                        }, "Longueur mise à jour.")}
+                        className={inputClassName}
+                      >
+                        <option value="short">Court — 400 à 700 caractères</option>
+                        <option value="medium">Moyen — 700 à 1 200 caractères</option>
+                        <option value="long">Long — 1 200 à 2 000 caractères</option>
+                      </select>
+                    </Field>
+                  </section>
+
+                  {/* ── Contexte éditorial ── */}
+                  <section className="grid gap-3">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-stone-500">Contexte éditorial</p>
+                      <p className="mt-1 text-xs leading-5 text-stone-400">Généré automatiquement par l'analyse de vos sources. Modifiable.</p>
+                    </div>
                     <textarea
                       value={sourceContext}
                       onChange={(e) => setSourceContextDraft(e.target.value)}
-                      rows={8}
+                      rows={6}
                       className={textareaClassName}
-                      placeholder="Décrivez votre activité, vos clients, votre positionnement…"
+                      placeholder="Analysez votre site ci-dessus pour remplir ce champ automatiquement…"
                     />
                     <button type="button" className={primaryButtonClassName} disabled={isPending} onClick={handleSourceSave}>
-                      Sauvegarder
+                      Sauvegarder le contexte
                     </button>
                   </section>
                 </div>
@@ -700,38 +979,157 @@ export function Dashboard({ data, notices, environment }: DashboardProps) {
                     <input name="headline" defaultValue={data.brandProfile.headline} className={inputClassName} />
                   </Field>
                 </div>
+                <Field label="Site web">
+                  <input name="websiteUrl" type="url" defaultValue={data.brandProfile.websiteUrl} placeholder="https://votresite.fr" className={inputClassName} />
+                </Field>
                 <Field label="Bio">
                   <textarea name="bio" defaultValue={data.brandProfile.bio} rows={3} className={textareaClassName} />
                 </Field>
-                <Field label="Audiences (une par ligne)">
-                  <textarea name="audiences" defaultValue={data.brandProfile.audiences.join("\n")} rows={3} className={textareaClassName} />
-                </Field>
-                <Field label="Offres (une par ligne)">
-                  <textarea name="offers" defaultValue={data.brandProfile.offers.join("\n")} rows={3} className={textareaClassName} />
-                </Field>
-                <Field label="Preuves & références (une par ligne)">
-                  <textarea name="proofPoints" defaultValue={data.brandProfile.proofPoints.join("\n")} rows={4} className={textareaClassName} />
-                </Field>
-                <Field label="Piliers de contenu (un par ligne)">
-                  <textarea name="contentPillars" defaultValue={data.brandProfile.contentPillars.join("\n")} rows={3} className={textareaClassName} />
-                </Field>
-                <Field label="Appels à l'action préférés (un par ligne)">
-                  <textarea name="preferredCallsToAction" defaultValue={data.brandProfile.preferredCallsToAction.join("\n")} rows={3} className={textareaClassName} />
-                </Field>
-                <Field label="Exemples de style (séparés par ---)">
+
+                {/* Advanced fields accordion */}
+                <button
+                  type="button"
+                  onClick={() => setShowAdvancedProfile((v) => !v)}
+                  className="flex items-center gap-2 text-xs font-semibold text-stone-500 transition hover:text-stone-800"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                    className={`transition-transform duration-200 ${showAdvancedProfile ? "rotate-90" : ""}`}
+                  >
+                    <path d="m9 18 6-6-6-6"/>
+                  </svg>
+                  {showAdvancedProfile ? "Masquer les champs avancés" : "Afficher les champs avancés"}
+                  <span className="text-[10px] font-normal text-stone-400">(audiences, offres, piliers…)</span>
+                </button>
+
+                {showAdvancedProfile && (
+                  <div className="grid gap-4 animate-fade-in">
+                    <Field label="Audiences (une par ligne)">
+                      <textarea name="audiences" defaultValue={data.brandProfile.audiences.join("\n")} rows={3} className={textareaClassName} />
+                    </Field>
+                    <Field label="Offres (une par ligne)">
+                      <textarea name="offers" defaultValue={data.brandProfile.offers.join("\n")} rows={3} className={textareaClassName} />
+                    </Field>
+                    <Field label="Preuves & références (une par ligne)">
+                      <textarea name="proofPoints" defaultValue={data.brandProfile.proofPoints.join("\n")} rows={4} className={textareaClassName} />
+                    </Field>
+                    <Field label="Piliers de contenu (un par ligne)">
+                      <textarea name="contentPillars" defaultValue={data.brandProfile.contentPillars.join("\n")} rows={3} className={textareaClassName} />
+                    </Field>
+                    <Field label="Appels à l'action préférés (un par ligne)">
+                      <textarea name="preferredCallsToAction" defaultValue={data.brandProfile.preferredCallsToAction.join("\n")} rows={3} className={textareaClassName} />
+                    </Field>
+                    <Field label="Exemples de style (séparés par ---)">
+                      <>
+                        <textarea name="styleSamples" defaultValue={data.brandProfile.styleSamples.join("\n\n---\n\n")} rows={10} className={textareaClassName} />
+                        <p className="text-xs leading-5 text-stone-500">Un exemple par bloc, séparé par <code>---</code>.</p>
+                      </>
+                    </Field>
+                  </div>
+                )}
+
+                {/* Hidden fields so form still submits advanced data when accordion is closed */}
+                {!showAdvancedProfile && (
                   <>
-                    <textarea name="styleSamples" defaultValue={data.brandProfile.styleSamples.join("\n\n---\n\n")} rows={10} className={textareaClassName} />
-                    <p className="text-xs leading-5 text-stone-500">Un exemple par bloc, séparé par <code>---</code>.</p>
+                    <input type="hidden" name="audiences" value={data.brandProfile.audiences.join("\n")} />
+                    <input type="hidden" name="offers" value={data.brandProfile.offers.join("\n")} />
+                    <input type="hidden" name="proofPoints" value={data.brandProfile.proofPoints.join("\n")} />
+                    <input type="hidden" name="contentPillars" value={data.brandProfile.contentPillars.join("\n")} />
+                    <input type="hidden" name="preferredCallsToAction" value={data.brandProfile.preferredCallsToAction.join("\n")} />
+                    <input type="hidden" name="styleSamples" value={data.brandProfile.styleSamples.join("\n\n---\n\n")} />
                   </>
-                </Field>
+                )}
+
                 <button type="submit" className={primaryButtonClassName} disabled={isPending}>
-                  Enregistrer le profil
+                  {isPending ? (
+                    <span className="flex items-center justify-center gap-2"><Spinner /> Enregistrement…</span>
+                  ) : "Enregistrer le profil"}
                 </button>
               </form>
             </div>
           </div>
         ) : null}
 
+      </div>
+    </div>
+  );
+}
+
+
+function Spinner() {
+  return (
+    <svg className="animate-spin-smooth shrink-0" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+    </svg>
+  );
+}
+
+function PaywallOverlay({ email }: { email: string | null }) {
+  const [loading, setLoading] = useState(false);
+
+  async function handleUpgrade() {
+    setLoading(true);
+    const res = await fetch("/api/stripe/checkout", { method: "POST" });
+    const data = (await res.json()) as { url?: string; error?: string };
+    if (data.url) {
+      window.location.href = data.url;
+    } else {
+      alert(data.error || "Une erreur est survenue.");
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-40 flex items-center justify-center bg-stone-950/60 backdrop-blur-sm px-4">
+      <div className="w-full max-w-md rounded-4xl border border-black/8 bg-white p-8 shadow-2xl">
+        {/* Icon */}
+        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-accent-soft text-2xl">🎯</div>
+
+        {/* Copy */}
+        <h2 className="mt-5 text-2xl font-semibold tracking-[-0.04em] text-stone-950">
+          Vous avez publié 5 posts gratuits
+        </h2>
+        <p className="mt-3 text-sm leading-6 text-stone-600">
+          Votre audience commence à vous reconnaître sur LinkedIn.
+          Ne disparaissez pas maintenant — c'est exactement là que la régularité crée la confiance.
+        </p>
+
+        {/* Offer */}
+        <div className="mt-6 rounded-3xl border border-accent/30 bg-accent-soft p-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">Offre Pro</p>
+              <p className="mt-1 text-3xl font-semibold tracking-[-0.04em] text-stone-950">
+                39€<span className="text-base font-normal text-stone-500">/mois</span>
+              </p>
+            </div>
+            <span className="rounded-full bg-accent px-3 py-1 text-xs font-semibold text-white">Recommandé</span>
+          </div>
+          <ul className="mt-4 space-y-2">
+            {["Posts illimités", "Publication automatique", "IA pleine puissance", "Sans engagement"].map((f) => (
+              <li key={f} className="flex items-center gap-2 text-sm text-stone-700">
+                <svg className="shrink-0 text-accent" xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                {f}
+              </li>
+            ))}
+          </ul>
+          <button
+            onClick={handleUpgrade}
+            disabled={loading}
+            className="mt-5 w-full rounded-full bg-accent py-3 text-sm font-semibold text-white transition hover:bg-orange-700 disabled:opacity-60"
+          >
+            {loading ? "Redirection vers le paiement…" : "Continuer avec Pro — 39€/mois"}
+          </button>
+          {email && (
+            <p className="mt-2 text-center text-xs text-stone-400">Compte : {email}</p>
+          )}
+        </div>
+
+        <p className="mt-4 text-center text-xs text-stone-400">
+          Résiliation en 1 clic depuis votre espace client ·{" "}
+          <a href="/upgrade" className="underline hover:text-stone-700">Voir tous les tarifs</a>
+        </p>
       </div>
     </div>
   );
@@ -782,7 +1180,7 @@ function SignalWorkbench({
       {/* ── Section 1 : Le post original ── */}
       <div>
         <p className="mb-2 text-xs font-semibold uppercase tracking-[0.22em] text-stone-400">
-          Post détecté — à commenter
+          Post repéré dans votre secteur
         </p>
         <div className="rounded-[1.75rem] border border-black/10 bg-white shadow-[0_4px_20px_rgba(0,0,0,0.06)]">
           {/* Auteur */}
@@ -801,7 +1199,7 @@ function SignalWorkbench({
                 : selectedSignal.interestScore >= 60 ? "bg-amber-100 text-amber-700"
                 : "bg-stone-100 text-stone-600"
               }`}>
-                Score {selectedSignal.interestScore}
+                {selectedSignal.interestScore >= 80 ? "Très pertinent" : selectedSignal.interestScore >= 60 ? "Pertinent" : "À évaluer"}
               </span>
               {selectedSignal.sourceUrl ? (
                 <a
@@ -823,17 +1221,14 @@ function SignalWorkbench({
           {/* Texte du post */}
           <div className="px-5 py-4">
             <div className="mb-3 flex flex-wrap gap-2 text-xs text-stone-500">
-              <span className="rounded-full border border-black/8 bg-stone-50 px-3 py-1">
-                Auteur: {selectedSignal.authorName || "Auteur inconnu"}
-              </span>
-              <span className="rounded-full border border-black/8 bg-stone-50 px-3 py-1">
-                Canal: {selectedSignal.sourceLabel}
-              </span>
               {selectedSignal.authorRole ? (
                 <span className="rounded-full border border-black/8 bg-stone-50 px-3 py-1">
-                  Profil: {selectedSignal.authorRole}
+                  {selectedSignal.authorRole}
                 </span>
               ) : null}
+              <span className="rounded-full border border-black/8 bg-stone-50 px-3 py-1">
+                via {selectedSignal.sourceLabel}
+              </span>
             </div>
             <p className="whitespace-pre-wrap text-sm leading-7 text-stone-800">{selectedSignal.sourceText}</p>
             {selectedSignal.imageContext ? (
@@ -846,7 +1241,7 @@ function SignalWorkbench({
           {/* Pourquoi ce post vous concerne */}
           {selectedSignal.fitReasons.length > 0 ? (
             <div className="border-t border-black/6 px-5 py-3">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-stone-400">Pourquoi ce post vous concerne</p>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-stone-400">Pourquoi commenter ce post</p>
               <div className="flex flex-wrap gap-2">
                 {selectedSignal.fitReasons.map((reason) => (
                   <span key={reason} className="rounded-full border border-black/8 bg-stone-50 px-3 py-1 text-xs text-stone-600">
@@ -862,7 +1257,7 @@ function SignalWorkbench({
       {/* ── Section 2 : Vos actions ── */}
       <div>
         <p className="mb-2 text-xs font-semibold uppercase tracking-[0.22em] text-stone-400">
-          Votre réaction
+          Rédiger votre commentaire
         </p>
         <div className="rounded-[1.75rem] border border-black/8 bg-white p-5">
           <div className="grid gap-3 sm:grid-cols-2">
@@ -935,8 +1330,7 @@ function SignalWorkbench({
           <p className="text-xs uppercase tracking-[0.22em] text-emerald-700">Commentaire retenu</p>
           <p className="mt-3 whitespace-pre-wrap">{selectedSignal.selectedComment}</p>
           <p className="mt-3 text-xs leading-5 text-emerald-800/80">
-            Le commentaire est seulement retenu dans le SAAAS. Cloture ce signal une fois le
-            commentaire vraiment poste ou exploite.
+            Copiez ce commentaire, publiez-le manuellement sur LinkedIn, puis marquez ce sujet comme traité.
           </p>
           <div className="mt-4 flex flex-wrap gap-3">
             <button
@@ -952,7 +1346,7 @@ function SignalWorkbench({
               disabled={isPending}
               onClick={() => onSignalAction(selectedSignal.id, "markHandled")}
             >
-              Marquer comme traite manuellement
+              Marquer comme traité
             </button>
           </div>
         </section>
@@ -1214,7 +1608,7 @@ function DraftCard({
         </div>
       ) : null}
 
-      <div className="grid gap-2 rounded-[1.5rem] border border-black/6 bg-stone-50 p-4 text-sm leading-6 text-stone-600">
+      <div className="grid gap-2 rounded-3xl border border-black/6 bg-stone-50 p-4 text-sm leading-6 text-stone-600">
         <StatusInfo label="Rationale" value={draft.rationale} />
         {draft.truthAnchors.length > 0 ? (
           <StatusInfo label="Ancrages factuels" value={draft.truthAnchors.join(" | ")} />
@@ -1338,9 +1732,9 @@ function toDateTimeLocal(value: string | null) {
 }
 
 const inputClassName =
-  "w-full rounded-2xl border border-black/10 bg-stone-50 px-4 py-3 text-sm text-stone-950 outline-none transition focus:border-accent focus:bg-white";
+  "w-full rounded-2xl border border-black/10 bg-stone-50 px-4 py-3 text-sm text-stone-950 outline-none transition focus:border-accent focus:bg-white focus:ring-2 focus:ring-accent/15";
 const textareaClassName = `${inputClassName} min-h-[120px] resize-y`;
 const primaryButtonClassName =
-  "inline-flex items-center justify-center rounded-full bg-accent px-5 py-3 text-sm font-semibold text-white transition hover:bg-accent-strong disabled:cursor-not-allowed disabled:opacity-60";
+  "inline-flex items-center justify-center gap-2 rounded-full bg-accent px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-accent-strong hover:shadow active:scale-95 disabled:cursor-not-allowed disabled:opacity-60";
 const secondaryButtonClassName =
-  "inline-flex items-center justify-center rounded-full border border-black/10 bg-white px-5 py-3 text-sm font-semibold text-stone-900 transition hover:border-black/20 hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-60";
+  "inline-flex items-center justify-center gap-2 rounded-full border border-black/10 bg-white px-5 py-3 text-sm font-semibold text-stone-900 shadow-sm transition hover:border-black/20 hover:bg-stone-50 hover:shadow active:scale-95 disabled:cursor-not-allowed disabled:opacity-60";

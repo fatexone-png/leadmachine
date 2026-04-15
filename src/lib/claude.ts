@@ -114,6 +114,31 @@ export async function scoreSignalWithClaude(
   };
 }
 
+export async function analyzeWebsiteVoice(
+  websiteText: string,
+  websiteUrl: string
+): Promise<{ sourceContext: string; styleSample: string; toneKeywords: string[] }> {
+  const response = await client.messages.create({
+    model: MODEL,
+    max_tokens: 1024,
+    tools: [WEBSITE_VOICE_TOOL],
+    tool_choice: { type: "tool", name: "extract_brand_voice" },
+    messages: [
+      {
+        role: "user",
+        content: `Analyze the following website content from ${websiteUrl} and extract the brand voice, tone, and key messages to help generate LinkedIn posts that match this brand's style.\n\nWebsite content:\n${websiteText.slice(0, 8000)}`,
+      },
+    ],
+  });
+
+  const toolUse = response.content.find((b) => b.type === "tool_use");
+  if (!toolUse || toolUse.type !== "tool_use") {
+    throw new Error("No tool_use block in website voice analysis response");
+  }
+
+  return toolUse.input as { sourceContext: string; styleSample: string; toneKeywords: string[] };
+}
+
 // ─── Tool schemas ─────────────────────────────────────────────────────────────
 
 const DRAFT_TOOL: Anthropic.Tool = {
@@ -184,6 +209,30 @@ const SIGNAL_SCORE_TOOL: Anthropic.Tool = {
       },
     },
     required: ["score", "fitReasons"],
+  },
+};
+
+const WEBSITE_VOICE_TOOL: Anthropic.Tool = {
+  name: "extract_brand_voice",
+  description: "Extract brand voice, tone, and editorial context from a website to guide LinkedIn post generation.",
+  input_schema: {
+    type: "object",
+    properties: {
+      sourceContext: {
+        type: "string",
+        description: "A 3-6 sentence editorial context describing the brand: who they are, what they do, their clients, their positioning, their tone of voice. Will be used to guide all future LinkedIn post generation.",
+      },
+      styleSample: {
+        type: "string",
+        description: "A 150-300 character sample of a LinkedIn post written in the brand's voice, based on the website content. No hashtags, no CTA — just pure brand voice.",
+      },
+      toneKeywords: {
+        type: "array",
+        items: { type: "string" },
+        description: "5 to 8 keywords describing the brand's tone (e.g. 'expert', 'direct', 'bienveillant', 'technique', 'accessible')",
+      },
+    },
+    required: ["sourceContext", "styleSample", "toneKeywords"],
   },
 };
 

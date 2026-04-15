@@ -22,8 +22,8 @@ export function getLinkedInAuthorizationUrl(state: string): string {
 
   const params = new URLSearchParams({
     response_type: "code",
-    client_id: process.env.LINKEDIN_CLIENT_ID as string,
-    redirect_uri: process.env.LINKEDIN_REDIRECT_URI as string,
+    client_id: (process.env.LINKEDIN_CLIENT_ID as string).trim(),
+    redirect_uri: (process.env.LINKEDIN_REDIRECT_URI as string).trim(),
     state,
     scope: REQUIRED_SCOPES.join(" "),
   });
@@ -34,9 +34,9 @@ export function getLinkedInAuthorizationUrl(state: string): string {
 export async function exchangeCodeForConnection(
   code: string
 ): Promise<LinkedInConnection> {
-  const clientId = process.env.LINKEDIN_CLIENT_ID;
-  const clientSecret = process.env.LINKEDIN_CLIENT_SECRET;
-  const redirectUri = process.env.LINKEDIN_REDIRECT_URI;
+  const clientId = (process.env.LINKEDIN_CLIENT_ID || "").trim();
+  const clientSecret = (process.env.LINKEDIN_CLIENT_SECRET || "").trim();
+  const redirectUri = (process.env.LINKEDIN_REDIRECT_URI || "").trim();
 
   if (!clientId || !clientSecret || !redirectUri) {
     throw new Error("LinkedIn environment variables are missing.");
@@ -112,8 +112,8 @@ export async function ensureFreshConnection(
     throw new Error("LinkedIn token expired. Reconnect the account.");
   }
 
-  const clientId = process.env.LINKEDIN_CLIENT_ID;
-  const clientSecret = process.env.LINKEDIN_CLIENT_SECRET;
+  const clientId = (process.env.LINKEDIN_CLIENT_ID || "").trim();
+  const clientSecret = (process.env.LINKEDIN_CLIENT_SECRET || "").trim();
 
   if (!clientId || !clientSecret) {
     throw new Error("LinkedIn environment variables are missing.");

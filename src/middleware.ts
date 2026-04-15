@@ -32,7 +32,7 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Les routes LinkedIn OAuth, cron et debug passent sans auth
-  if (pathname.startsWith("/api/linkedin/") || pathname.startsWith("/api/cron/") || pathname.startsWith("/api/debug")) {
+  if (pathname.startsWith("/api/linkedin/") || pathname.startsWith("/api/cron/") || pathname.startsWith("/api/debug") || pathname === "/api/stripe/webhook") {
     return NextResponse.next();
   }
 

@@ -11,6 +11,10 @@ export const TALCO_DEMO_DATA: AppData = {
     fullName: "Delphine Ghighi",
     headline: "Avocate associée — TAL&CO | Industrie, Innovation, Risques, Entreprises en difficulté",
     bio: "J'accompagne des dirigeants et des entreprises industrielles et technologiques sur les sujets qui engagent vraiment : contrats complexes, prévention des risques, restructuration. Chez TAL&CO, nous travaillons avec des clients qui ne cherchent pas un avocat généraliste. Ils cherchent quelqu'un qui comprend leur secteur.",
+    websiteUrl: "",
+    styleSources: [],
+    tonePreset: "formal",
+    postLengthPreset: "medium",
     audiences: [
       "dirigeants de PME industrielles",
       "fondateurs de startups technologiques",

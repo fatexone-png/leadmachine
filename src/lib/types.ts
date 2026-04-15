@@ -13,10 +13,22 @@ export type SignalStatus =
   | "comment_ready"
   | "handled";
 
+export interface StyleSource {
+  id: string;
+  url: string;
+  label: string;
+  scrapedAt: string | null;
+  toneKeywords: string[];
+}
+
 export interface BrandProfile {
   fullName: string;
   headline: string;
   bio: string;
+  websiteUrl: string;
+  styleSources: StyleSource[];
+  tonePreset: "formal" | "direct" | "educational" | "storytelling";
+  postLengthPreset: "short" | "medium" | "long";
   audiences: string[];
   offers: string[];
   proofPoints: string[];

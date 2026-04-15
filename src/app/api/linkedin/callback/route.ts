@@ -32,6 +32,10 @@ export async function GET(request: Request) {
     await registerUser(memberId);
     await updateStore((data) => {
       data.linkedin = connection;
+      // Pre-fill name from LinkedIn on first connection
+      if (!data.brandProfile.fullName && connection.name) {
+        data.brandProfile.fullName = connection.name;
+      }
       data.settings.updatedAt = new Date().toISOString();
     }, memberId);
 
