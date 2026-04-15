@@ -84,6 +84,7 @@ export async function POST(request: Request) {
     // Update the main website context if it's the primary source
     if (isMainWebsite) {
       data.settings.sourceContext = analysis.sourceContext;
+      data.settings.businessContext = analysis.businessContext;
       data.brandProfile.websiteUrl = url.toString();
     }
 
@@ -99,6 +100,7 @@ export async function POST(request: Request) {
       label,
       scrapedAt: now,
       toneKeywords: analysis.toneKeywords,
+      businessContext: analysis.businessContext,
     };
 
     if (existingIdx >= 0) {
@@ -115,14 +117,13 @@ export async function POST(request: Request) {
       ];
     }
 
-    // Rebuild sourceContext from all scraped sources if not main website
-    if (!isMainWebsite && data.brandProfile.styleSources.length > 0) {
-      const scrapedSources = data.brandProfile.styleSources
-        .filter((s) => s.scrapedAt && s.toneKeywords.length > 0)
-        .map((s) => `${s.label} (${s.url.replace(/https?:\/\//, "")}): ${s.toneKeywords.join(", ")}`)
-        .join(" | ");
-      if (scrapedSources && !data.settings.sourceContext) {
+    // For non-main sources: always update contexts from latest scrape
+    if (!isMainWebsite) {
+      if (!data.settings.sourceContext) {
         data.settings.sourceContext = analysis.sourceContext;
+      }
+      if (!data.settings.businessContext) {
+        data.settings.businessContext = analysis.businessContext;
       }
     }
 

@@ -106,6 +106,7 @@ export function createDefaultData(): AppData {
       aiModel: process.env.CLAUDE_MODEL || "claude-sonnet-4-6",
       cronSecretConfigured: Boolean(process.env.CRON_SECRET),
       sourceContext: "",
+      businessContext: "",
       updatedAt: now,
     },
     watchlist: DEFAULT_WATCHLIST,

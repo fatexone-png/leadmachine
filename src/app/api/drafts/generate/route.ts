@@ -29,8 +29,10 @@ export async function POST(request: Request) {
     .filter((draft) => draft.status === "published")
     .map((draft) => draft.content)
     .slice(0, 2);
+  // Merge business context: explicit from payload (future use) or from settings
+  const businessContext = (payload.businessContext?.trim() || store.settings.businessContext?.trim() || "");
   const generated = await generateLinkedInDraft(
-    { spark, audience, objective, cta, sourceContext },
+    { spark, audience, objective, cta, sourceContext, businessContext },
     store.brandProfile,
     validatedPostSamples
   );

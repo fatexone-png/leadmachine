@@ -19,6 +19,7 @@ export interface StyleSource {
   label: string;
   scrapedAt: string | null;
   toneKeywords: string[];
+  businessContext?: string;
 }
 
 export interface BrandProfile {
@@ -81,6 +82,7 @@ export interface AppSettings {
   aiModel: string;
   cronSecretConfigured: boolean;
   sourceContext: string;
+  businessContext: string;
   updatedAt: string;
 }
 
@@ -129,6 +131,7 @@ export interface DraftGenerationInput {
   objective: string;
   cta: string;
   sourceContext?: string;
+  businessContext?: string;
 }
 
 export interface CommentSuggestionInput {

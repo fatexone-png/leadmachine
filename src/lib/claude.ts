@@ -78,7 +78,7 @@ export async function scoreSignalWithClaude(
     system: [
       {
         type: "text",
-        text: buildScoringInstructions(),
+        text: buildScoringInstructions(brandProfile),
         cache_control: { type: "ephemeral" },
       },
     ],
@@ -117,16 +117,25 @@ export async function scoreSignalWithClaude(
 export async function analyzeWebsiteVoice(
   websiteText: string,
   websiteUrl: string
-): Promise<{ sourceContext: string; styleSample: string; toneKeywords: string[] }> {
+): Promise<{ sourceContext: string; businessContext: string; styleSample: string; toneKeywords: string[] }> {
   const response = await client.messages.create({
     model: MODEL,
-    max_tokens: 1024,
+    max_tokens: 1500,
     tools: [WEBSITE_VOICE_TOOL],
     tool_choice: { type: "tool", name: "extract_brand_voice" },
     messages: [
       {
         role: "user",
-        content: `Analyze the following website content from ${websiteUrl} and extract the brand voice, tone, and key messages to help generate LinkedIn posts that match this brand's style.\n\nWebsite content:\n${websiteText.slice(0, 8000)}`,
+        content: [
+          "Analyze this website content and extract TWO things separately:",
+          "1. The BUSINESS CONTEXT: what this person or firm actually does, for whom, in which domain — concrete enough that an AI could generate LinkedIn posts on the RIGHT topics (law, accounting, consulting, tech — be specific about practice areas, client types, expertise).",
+          "2. The WRITING STYLE: tone, voice, sentence rhythm — how they write, not what they write about.",
+          "",
+          `Website: ${websiteUrl}`,
+          "",
+          "Content:",
+          websiteText.slice(0, 9000),
+        ].join("\n"),
       },
     ],
   });
@@ -136,7 +145,7 @@ export async function analyzeWebsiteVoice(
     throw new Error("No tool_use block in website voice analysis response");
   }
 
-  return toolUse.input as { sourceContext: string; styleSample: string; toneKeywords: string[] };
+  return toolUse.input as { sourceContext: string; businessContext: string; styleSample: string; toneKeywords: string[] };
 }
 
 // ─── Tool schemas ─────────────────────────────────────────────────────────────
@@ -214,25 +223,29 @@ const SIGNAL_SCORE_TOOL: Anthropic.Tool = {
 
 const WEBSITE_VOICE_TOOL: Anthropic.Tool = {
   name: "extract_brand_voice",
-  description: "Extract brand voice, tone, and editorial context from a website to guide LinkedIn post generation.",
+  description: "Extract both the business context AND writing style from a website to guide LinkedIn post generation.",
   input_schema: {
     type: "object",
     properties: {
+      businessContext: {
+        type: "string",
+        description: "4-8 sentences describing WHAT this person/firm does and FOR WHOM. Be concrete and specific: sector (droit pénal des affaires, expertise comptable, conseil en stratégie, etc.), types of clients (dirigeants de PME, groupes familiaux, startups, etc.), specific practice areas or services, geographic zone, key differentiators. This context will tell the AI WHAT TOPICS to write about on LinkedIn — it must be precise enough to generate relevant content.",
+      },
       sourceContext: {
         type: "string",
-        description: "A 3-6 sentence editorial context describing the brand: who they are, what they do, their clients, their positioning, their tone of voice. Will be used to guide all future LinkedIn post generation.",
+        description: "3-5 sentences describing HOW they write: tone, sentence rhythm, level of formality, vocabulary style. Separate from the business context — this describes the voice, not the substance.",
       },
       styleSample: {
         type: "string",
-        description: "A 150-300 character sample of a LinkedIn post written in the brand's voice, based on the website content. No hashtags, no CTA — just pure brand voice.",
+        description: "A 150-300 character sample of a LinkedIn post written in the brand's voice. No hashtags, no CTA — just pure brand voice on a topic relevant to their business.",
       },
       toneKeywords: {
         type: "array",
         items: { type: "string" },
-        description: "5 to 8 keywords describing the brand's tone (e.g. 'expert', 'direct', 'bienveillant', 'technique', 'accessible')",
+        description: "5 to 8 keywords describing the brand's tone (e.g. 'expert', 'direct', 'pédagogue', 'technique', 'accessible', 'sobre', 'engagé')",
       },
     },
-    required: ["sourceContext", "styleSample", "toneKeywords"],
+    required: ["businessContext", "sourceContext", "styleSample", "toneKeywords"],
   },
 };
 
@@ -248,8 +261,8 @@ async function requestDraft(
 ): Promise<GeneratedDraft> {
   const systemText =
     mode === "base"
-      ? buildDraftInstructions()
-      : buildRefinementInstructions(weakSignals!);
+      ? buildDraftInstructions(brandProfile)
+      : buildRefinementInstructions(weakSignals!, brandProfile);
 
   const userPrompt =
     mode === "base"
@@ -274,7 +287,7 @@ async function requestDraft(
         content: [
           {
             type: "text",
-            text: buildBrandProfileContext(brandProfile),
+            text: buildBrandProfileContext(brandProfile, [], input.businessContext),
             cache_control: { type: "ephemeral" },
           },
           {
@@ -305,7 +318,7 @@ async function requestComments(
     system: [
       {
         type: "text",
-        text: buildCommentInstructions(),
+        text: buildCommentInstructions(brandProfile),
         cache_control: { type: "ephemeral" },
       },
     ],
@@ -317,7 +330,7 @@ async function requestComments(
         content: [
           {
             type: "text",
-            text: buildBrandProfileContext(brandProfile, validatedPostSamples),
+            text: buildBrandProfileContext(brandProfile, validatedPostSamples, input.sourceContext),
             cache_control: { type: "ephemeral" },
           },
           {
@@ -339,28 +352,30 @@ async function requestComments(
 
 // ─── System prompts ───────────────────────────────────────────────────────────
 
-function buildDraftInstructions(): string {
+function buildDraftInstructions(brandProfile: BrandProfile): string {
+  const name = brandProfile.fullName || "l'utilisateur";
   return [
-    "You are a sharp French ghostwriter for Brice Faradji.",
+    `You are a sharp French ghostwriter for ${name}.`,
     "Write in French.",
-    "Write like a real operator, not like a marketing assistant.",
+    "Write like a real practitioner, not like a marketing assistant.",
     "Avoid hype, startup clichés, coaching jargon, and generic business platitudes.",
     "Use short paragraphs adapted to LinkedIn.",
-    "Keep the tone embodied, concrete, tense, and credible.",
+    "Keep the tone embodied, concrete, and credible.",
     "Sound like someone who has lived the pressure, not someone commenting from the side.",
     "Prefer lived experience, sharp contrasts, and precise verbs over abstract concepts.",
     "No emoji. No list formatting inside the post unless absolutely necessary.",
     "Do not write a bland corporate post.",
-    "Do not flatten Brice into a generic consultant voice.",
-    "Do not invent achievements, client cases, scenes, meetings, flights, dialogues, or observations.",
+    `Do not flatten ${name} into a generic consultant voice.`,
+    "Do not invent achievements, client cases, scenes, meetings, dialogues, or observations.",
     "Hashtags must be common, correctly spelled, and business-relevant.",
     "Use only the generate_linkedin_draft tool to return your output.",
   ].join(" ");
 }
 
-function buildRefinementInstructions(weakSignals: string[]): string {
+function buildRefinementInstructions(weakSignals: string[], brandProfile: BrandProfile): string {
+  const name = brandProfile.fullName || "l'utilisateur";
   return [
-    "You are a ruthless French editor improving a weak LinkedIn draft for Brice Faradji.",
+    `You are a ruthless French editor improving a weak LinkedIn draft for ${name}.`,
     "Write in French.",
     "Remove generic inspiration language, soft consultant copy, and AI-sounding filler.",
     `Specifically fix these weak signals: ${weakSignals.join("; ")}.`,
@@ -373,9 +388,10 @@ function buildRefinementInstructions(weakSignals: string[]): string {
   ].join(" ");
 }
 
-function buildCommentInstructions(): string {
+function buildCommentInstructions(brandProfile: BrandProfile): string {
+  const name = brandProfile.fullName || "l'utilisateur";
   return [
-    "You write French LinkedIn comments for Brice Faradji.",
+    `You write French LinkedIn comments for ${name}.`,
     "Comments must sound human, specific, credible, and useful.",
     "Do not sound like engagement bait, praise farming, or generic networking copy.",
     "Avoid empty compliments, filler, and motivational sludge.",
@@ -385,9 +401,10 @@ function buildCommentInstructions(): string {
   ].join(" ");
 }
 
-function buildScoringInstructions(): string {
+function buildScoringInstructions(brandProfile: BrandProfile): string {
+  const name = brandProfile.fullName || "l'utilisateur";
   return [
-    "You score the editorial relevance of a LinkedIn signal for Brice Faradji's content strategy.",
+    `You score the editorial relevance of a LinkedIn signal for ${name}'s content strategy.`,
     "Score from 0 (completely irrelevant) to 100 (perfect fit).",
     "Consider: content pillar match, audience relevance, offer alignment, whether the content is experience-based vs vague opinion, how commentable the tension is, and business potential.",
     "Be precise and discriminating — not every post about leadership deserves 80+.",
@@ -399,19 +416,24 @@ function buildScoringInstructions(): string {
 
 function buildBrandProfileContext(
   brandProfile: BrandProfile,
-  validatedPostSamples: string[] = []
+  validatedPostSamples: string[] = [],
+  businessContext?: string
 ): string {
   const parts = [
-    `Brand profile — ${brandProfile.fullName}:`,
-    `- Headline: ${brandProfile.headline}`,
-    `- Bio: ${brandProfile.bio}`,
-    `- Audiences: ${brandProfile.audiences.join(", ")}`,
-    `- Offers: ${brandProfile.offers.join(", ")}`,
-    `- Proof points: ${brandProfile.proofPoints.join(", ")}`,
-    `- Content pillars: ${brandProfile.contentPillars.join(", ")}`,
-    `- Preferred CTAs: ${brandProfile.preferredCallsToAction.join(" | ")}`,
+    `Brand profile — ${brandProfile.fullName || "Utilisateur"}:`,
+    `- Headline: ${brandProfile.headline || "—"}`,
+    `- Bio: ${brandProfile.bio || "—"}`,
+    `- Audiences: ${brandProfile.audiences.join(", ") || "—"}`,
+    `- Offers / services: ${brandProfile.offers.join(", ") || "—"}`,
+    `- Proof points: ${brandProfile.proofPoints.join(", ") || "—"}`,
+    `- Content pillars: ${brandProfile.contentPillars.join(", ") || "—"}`,
+    `- Preferred CTAs: ${brandProfile.preferredCallsToAction.join(" | ") || "—"}`,
     `- Style references:\n${formatStyleSamples(brandProfile.styleSamples)}`,
   ];
+
+  if (businessContext?.trim()) {
+    parts.push(`- Business context (what they do, for whom, their domain):\n  ${businessContext.trim()}`);
+  }
 
   if (validatedPostSamples.length > 0) {
     parts.push(`- Recently validated LinkedIn posts:\n${formatValidatedSamples(validatedPostSamples)}`);
@@ -423,11 +445,16 @@ function buildBrandProfileContext(
 function buildDraftPrompt(input: DraftGenerationInput, validatedPostSamples: string[]): string {
   return [
     "Draft request:",
-    `- Spark: ${input.spark}`,
-    `- Audience: ${input.audience}`,
-    `- Objective: ${input.objective}`,
-    `- CTA intention: ${input.cta}`,
-    `- Optional source context:\n${input.sourceContext?.trim() || "None provided"}`,
+    `- Spark (idea from the user): ${input.spark}`,
+    `- Target audience: ${input.audience}`,
+    `- Post objective: ${input.objective}`,
+    `- CTA intention: ${input.cta || "None specified"}`,
+    input.businessContext?.trim()
+      ? `- Business context (WHAT to write about — their actual domain, clients, expertise):\n  ${input.businessContext.trim()}`
+      : "",
+    input.sourceContext?.trim()
+      ? `- Writing style context (HOW to write — tone, voice):\n  ${input.sourceContext.trim()}`
+      : "",
     "",
     "Recently validated LinkedIn posts (nearest target voice — study them closely):",
     formatValidatedSamples(validatedPostSamples),
@@ -436,19 +463,20 @@ function buildDraftPrompt(input: DraftGenerationInput, validatedPostSamples: str
     "- A strong internal dashboard title (not a clickbait headline).",
     "- A sharp angle in one sentence.",
     "- A hook that opens the post without a rhetorical question.",
-    "- A full LinkedIn post in French, around 900 to 1400 characters, with short paragraphs (min 5 paragraphs).",
+    "- A full LinkedIn post in French, with short paragraphs (min 5 paragraphs).",
+    "- The post must be grounded in the user's actual domain (law, accounting, consulting, etc.) — use the business context to ensure the topic is relevant to their practice.",
     "- Study the style references for cadence, density, tension, and sentence rhythm.",
     "- Do not copy hooks, sentences, metaphors, or images from references. Write something original.",
-    "- Include at least one striking concrete image or situation, not only abstract reflection.",
-    "- Use only facts explicitly present in the spark, profile, or validated posts.",
-    "- Do not invent scenes, client cases, meetings, flights, dialogues, or observations. If uncertain, cut it.",
+    "- Include at least one concrete situation or friction point a professional in their field would recognize.",
+    "- Use only facts explicitly present in the spark, profile, or business context.",
+    "- Do not invent scenes, client cases, meetings, dialogues, or observations. If uncertain, cut it.",
     "- Banned phrases: 'dans un monde en constante evolution', 'il est essentiel', 'enjeu crucial', 'performance accrue', 'solutions concretes', 'les vrais leaders', 'il est temps de', 'n'attendez plus', 'je vous invite', 'en partageant', 'en conclusion', 'de nombreuses entreprises'.",
     "- No emoji, no corporate tone, no AI-sounding filler.",
-    "- A CTA aligned with Brice's business (conferences, SaaS, coaching).",
-    "- A short rationale explaining why this post can generate business conversations.",
-    "- 3 to 6 relevant hashtags (common, correctly spelled).",
+    "- A CTA aligned with the user's actual business and services (not generic).",
+    "- A short rationale explaining why this post can generate qualified business conversations.",
+    "- 3 to 6 relevant hashtags (common, correctly spelled, sector-specific).",
     "- 3 to 6 factual anchors: short true statements supported by the spark or brand profile.",
-  ].join("\n");
+  ].filter(Boolean).join("\n");
 }
 
 function buildRefinementPrompt(
