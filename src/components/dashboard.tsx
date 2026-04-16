@@ -407,6 +407,7 @@ export function Dashboard({ data, notices, environment }: DashboardProps) {
   const selectedDraft = data.drafts.find((d) => d.id === selectedDraftId) ?? data.drafts[0] ?? null;
 
   const isPaywalled = data.plan === "free" && data.postsPublished >= 5;
+  const isFreeNearLimit = data.plan === "free" && data.postsPublished >= 4 && data.postsPublished < 5;
 
   return (
     <div className="relative flex h-screen flex-col overflow-hidden bg-background">
@@ -420,6 +421,19 @@ export function Dashboard({ data, notices, environment }: DashboardProps) {
 
       {/* ── Paywall overlay ── */}
       {isPaywalled && <PaywallOverlay email={data.linkedin.email} />}
+
+      {/* ── Near-limit banner ── */}
+      {isFreeNearLimit && (
+        <div className="relative z-10 flex items-center justify-between gap-3 bg-amber-50 border-b border-amber-200 px-5 py-2.5">
+          <p className="text-xs text-amber-800">
+            <span className="font-semibold">Il vous reste 1 post gratuit.</span>{" "}
+            Passez à Pro pour continuer à publier sans interruption.
+          </p>
+          <a href="/upgrade" className="shrink-0 rounded-full bg-accent px-4 py-1.5 text-xs font-semibold text-white hover:bg-orange-700 transition">
+            Passer à Pro
+          </a>
+        </div>
+      )}
 
       {/* Toast */}
       {toast ? (
