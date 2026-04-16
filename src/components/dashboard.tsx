@@ -3,6 +3,7 @@
 import Link from "next/link";
 import {
   useState,
+  useEffect,
   useTransition,
   type Dispatch,
   type FormEvent,
@@ -97,6 +98,19 @@ export function Dashboard({ data, notices, environment }: DashboardProps) {
   const [newSourceUrl, setNewSourceUrl] = useState("");
   const [newSourceLabel, setNewSourceLabel] = useState("");
   const [scrapingSourceId, setScrapingSourceId] = useState<string | null>(null);
+
+  // Auto-generate topics when profile is ready but signals are empty
+  const [autoGenerating, setAutoGenerating] = useState(false);
+  useEffect(() => {
+    const hasProfile = Boolean(data.settings.businessContext);
+    const noSignals = data.signals.filter((s) => s.status !== "rejected").length === 0;
+    if (!hasProfile || !noSignals) return;
+    setAutoGenerating(true);
+    fetch("/api/signals/auto-generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({}) })
+      .then(() => router.refresh())
+      .finally(() => setAutoGenerating(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const styleSources = data.brandProfile.styleSources ?? [];
   // Generate success feedback
   const [generateSuccess, setGenerateSuccess] = useState(false);
@@ -645,24 +659,39 @@ export function Dashboard({ data, notices, environment }: DashboardProps) {
                     </button>
                   </form>
                 ) : data.signals.length === 0 ? (
-                  <div className="flex flex-col gap-3 p-5">
-                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-stone-400">Par où commencer</p>
-                    {[
-                      { step: "1", title: "Collez un post LinkedIn", desc: "Repérez un post dans votre fil d'actualité et copiez son texte dans \"+ Ajouter\"." },
-                      { step: "2", title: "L'IA l'analyse pour vous", desc: "PostPilote évalue sa pertinence par rapport à votre activité et suggère un angle de commentaire." },
-                      { step: "3", title: "Commentez en 1 clic", desc: "Copiez le commentaire généré et publiez-le directement sur LinkedIn." },
-                    ].map(({ step, title, desc }) => (
-                      <div key={step} className="flex gap-3 rounded-2xl border border-black/6 bg-white p-4">
-                        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-stone-100 text-xs font-bold text-stone-500">{step}</span>
+                  <div className="flex flex-col items-center justify-center gap-4 p-8 text-center">
+                    {autoGenerating ? (
+                      <>
+                        <Spinner />
                         <div>
-                          <p className="text-sm font-semibold text-stone-900">{title}</p>
-                          <p className="mt-0.5 text-xs leading-5 text-stone-500">{desc}</p>
+                          <p className="text-sm font-semibold text-stone-900">L'IA analyse votre profil…</p>
+                          <p className="mt-1 text-xs leading-5 text-stone-400">Préparation de vos premiers sujets personnalisés.</p>
                         </div>
-                      </div>
-                    ))}
-                    <p className="mt-1 text-center text-xs text-stone-400">
-                      Dès demain matin, la veille automatique alimentera cette liste.
-                    </p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-sm font-semibold text-stone-900">Aucun sujet pour l'instant</p>
+                        <p className="text-xs leading-5 text-stone-400">
+                          {data.settings.businessContext
+                            ? "La veille automatique alimentera cette liste chaque matin."
+                            : "Configurez votre site dans l'onglet Profil pour que l'IA génère des sujets pertinents."}
+                        </p>
+                        {data.settings.businessContext && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setAutoGenerating(true);
+                              fetch("/api/signals/auto-generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ force: true }) })
+                                .then(() => router.refresh())
+                                .finally(() => setAutoGenerating(false));
+                            }}
+                            className="rounded-full bg-stone-950 px-5 py-2.5 text-xs font-semibold text-white transition hover:bg-stone-800"
+                          >
+                            Générer mes premiers sujets
+                          </button>
+                        )}
+                      </>
+                    )}
                   </div>
                 ) : (
                   <div className="divide-y divide-black/5">

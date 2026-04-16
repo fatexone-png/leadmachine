@@ -148,6 +148,58 @@ export async function analyzeWebsiteVoice(
   return toolUse.input as { sourceContext: string; businessContext: string; styleSample: string; toneKeywords: string[] };
 }
 
+export interface AIGeneratedTopic {
+  title: string;
+  angle: string;
+  why: string;
+  trigger: string;
+  interestScore: number;
+  contentPillar: string;
+}
+
+export async function generateTopicsFromProfile({
+  businessContext,
+  contentPillars,
+  audiences,
+  fullName,
+}: {
+  businessContext: string;
+  contentPillars: string[];
+  audiences: string[];
+  fullName: string;
+}): Promise<AIGeneratedTopic[]> {
+  const pillarsText = contentPillars.length > 0 ? contentPillars.join(", ") : "non définis";
+  const audiencesText = audiences.length > 0 ? audiences.join(", ") : "professionnels";
+
+  const response = await client.messages.create({
+    model: MODEL,
+    max_tokens: 2000,
+    tools: [TOPIC_GENERATION_TOOL],
+    tool_choice: { type: "tool", name: "generate_topics" },
+    messages: [
+      {
+        role: "user",
+        content: `Tu es PostPilote, assistant LinkedIn pour des professionnels français.
+
+Profil de l'utilisateur :
+- Nom : ${fullName || "Professionnel"}
+- Activité : ${businessContext}
+- Piliers de contenu : ${pillarsText}
+- Audience cible : ${audiencesText}
+
+Génère exactement 5 sujets de posts LinkedIn pertinents et concrets pour cet utilisateur.
+Chaque sujet doit être directement ancré dans son domaine d'expertise réel — pas générique.
+Les sujets doivent varier : partage d'expertise, retour d'expérience, actualité sectorielle, conseil pratique, prise de position.`,
+      },
+    ],
+  });
+
+  const toolUse = response.content.find((b) => b.type === "tool_use");
+  if (!toolUse || toolUse.type !== "tool_use") throw new Error("No tool_use in topic generation");
+  const result = toolUse.input as { topics: AIGeneratedTopic[] };
+  return (result.topics || []).slice(0, 5);
+}
+
 // ─── Tool schemas ─────────────────────────────────────────────────────────────
 
 const DRAFT_TOOL: Anthropic.Tool = {
@@ -246,6 +298,34 @@ const WEBSITE_VOICE_TOOL: Anthropic.Tool = {
       },
     },
     required: ["businessContext", "sourceContext", "styleSample", "toneKeywords"],
+  },
+};
+
+const TOPIC_GENERATION_TOOL: Anthropic.Tool = {
+  name: "generate_topics",
+  description: "Generate 5 relevant LinkedIn post topic ideas based on the user's professional profile.",
+  input_schema: {
+    type: "object",
+    properties: {
+      topics: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            title: { type: "string", description: "Titre accrocheur du sujet, max 80 caractères." },
+            angle: { type: "string", description: "L'angle spécifique à prendre — 1 phrase courte." },
+            why: { type: "string", description: "Pourquoi ce sujet est pertinent pour l'audience cible — 1 phrase." },
+            trigger: { type: "string", description: "La situation, actualité ou constat qui justifie d'écrire ce post maintenant." },
+            interestScore: { type: "number", description: "Score de pertinence entre 65 et 92." },
+            contentPillar: { type: "string", description: "Le pilier de contenu associé (ex: expertise, retour d'expérience, conseil, actualité sectorielle, prise de position)." },
+          },
+          required: ["title", "angle", "why", "trigger", "interestScore", "contentPillar"],
+        },
+        minItems: 5,
+        maxItems: 5,
+      },
+    },
+    required: ["topics"],
   },
 };
 
