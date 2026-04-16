@@ -295,33 +295,13 @@ function sanitizeSignalStatus(status: string): SignalStatus {
 }
 
 function normalizeSignalAuthor(
-  signalId: string,
+  _signalId: string,
   authorName: string | null | undefined,
   authorRole: string | null | undefined
 ) {
   const trimmedName = authorName?.trim() || "";
   const trimmedRole = authorRole?.trim() || "";
 
-  if (signalId === "seed-signal-1" && trimmedName === "Dirigeant PME") {
-    return {
-      authorName: "Diane Imbert",
-      authorRole: trimmedRole || "Dirigeante PME",
-    };
-  }
-
-  if (signalId === "seed-signal-2" && trimmedName === "Fondateur SaaS") {
-    return {
-      authorName: "Nicolas Perret",
-      authorRole: trimmedRole || "Fondateur SaaS",
-    };
-  }
-
-  if (signalId === "seed-signal-3" && trimmedName === "Coach / formateur") {
-    return {
-      authorName: "Claire Martin",
-      authorRole: trimmedRole || "Coach / formatrice",
-    };
-  }
 
   return {
     authorName: trimmedName || "Auteur inconnu",
@@ -344,19 +324,13 @@ function needsStorageMigration(data: AppData) {
   const signals = Array.isArray(data.signals) ? data.signals : [];
   const linkedin = data.linkedin ?? { accessToken: null, refreshToken: null };
   const hasLegacySignalStatus = signals.some((signal) => (signal.status as string) === "posted");
-  const hasLegacyDemoAuthors = signals.some(
-    (signal) =>
-      (signal.id === "seed-signal-1" && signal.authorName === "Dirigeant PME") ||
-      (signal.id === "seed-signal-2" && signal.authorName === "Fondateur SaaS") ||
-      (signal.id === "seed-signal-3" && signal.authorName === "Coach / formateur")
-  );
   const hasPlaintextSecrets =
     canProtectStoredSecrets() &&
     [linkedin.accessToken, linkedin.refreshToken].some(
       (value) => Boolean(value) && !isEncryptedStoredSecret(value)
     );
 
-  return hasLegacySignalStatus || hasLegacyDemoAuthors || hasPlaintextSecrets;
+  return hasLegacySignalStatus || hasPlaintextSecrets;
 }
 
 function sanitizeList(values: string[]): string[] {

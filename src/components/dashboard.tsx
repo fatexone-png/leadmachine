@@ -645,8 +645,24 @@ export function Dashboard({ data, notices, environment }: DashboardProps) {
                     </button>
                   </form>
                 ) : data.signals.length === 0 ? (
-                  <div className="p-4">
-                    <EmptyState message="Aucun sujet pour l'instant. Cliquez sur + Ajouter pour en saisir un." />
+                  <div className="flex flex-col gap-3 p-5">
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-stone-400">Par où commencer</p>
+                    {[
+                      { step: "1", title: "Collez un post LinkedIn", desc: "Repérez un post dans votre fil d'actualité et copiez son texte dans \"+ Ajouter\"." },
+                      { step: "2", title: "L'IA l'analyse pour vous", desc: "PostPilote évalue sa pertinence par rapport à votre activité et suggère un angle de commentaire." },
+                      { step: "3", title: "Commentez en 1 clic", desc: "Copiez le commentaire généré et publiez-le directement sur LinkedIn." },
+                    ].map(({ step, title, desc }) => (
+                      <div key={step} className="flex gap-3 rounded-2xl border border-black/6 bg-white p-4">
+                        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-stone-100 text-xs font-bold text-stone-500">{step}</span>
+                        <div>
+                          <p className="text-sm font-semibold text-stone-900">{title}</p>
+                          <p className="mt-0.5 text-xs leading-5 text-stone-500">{desc}</p>
+                        </div>
+                      </div>
+                    ))}
+                    <p className="mt-1 text-center text-xs text-stone-400">
+                      Dès demain matin, la veille automatique alimentera cette liste.
+                    </p>
                   </div>
                 ) : (
                   <div className="divide-y divide-black/5">
