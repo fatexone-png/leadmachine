@@ -642,13 +642,35 @@ export function Dashboard({ data, notices, environment }: DashboardProps) {
                     <span className="rounded-full bg-accent px-2 py-0.5 text-xs font-bold text-white">{signalsToReview}</span>
                   )}
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setShowImportForm((v) => !v)}
-                  className="rounded-full border border-black/10 bg-white px-3 py-1.5 text-xs font-semibold text-stone-700 transition hover:border-black/20"
-                >
-                  {showImportForm ? "← Liste" : "+ Ajouter"}
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    title="Actualiser la veille"
+                    disabled={autoGenerating}
+                    onClick={() => {
+                      setAutoGenerating(true);
+                      fetch("/api/cron/rss-fetch/user", { method: "POST" })
+                        .then(() => router.refresh())
+                        .catch(() => showToast("Erreur lors de la veille.", true))
+                        .finally(() => setAutoGenerating(false));
+                    }}
+                    className="flex items-center gap-1 rounded-full border border-black/10 bg-white px-3 py-1.5 text-xs font-semibold text-stone-600 transition hover:border-black/20 disabled:opacity-40"
+                  >
+                    {autoGenerating ? (
+                      <Spinner />
+                    ) : (
+                      <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+                    )}
+                    Veille
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowImportForm((v) => !v)}
+                    className="rounded-full border border-black/10 bg-white px-3 py-1.5 text-xs font-semibold text-stone-700 transition hover:border-black/20"
+                  >
+                    {showImportForm ? "← Liste" : "+ Ajouter"}
+                  </button>
+                </div>
               </div>
 
               {/* Scrollable content */}
