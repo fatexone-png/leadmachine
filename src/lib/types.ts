@@ -83,6 +83,10 @@ export interface AppSettings {
   cronSecretConfigured: boolean;
   sourceContext: string;
   businessContext: string;
+  charterAcceptedAt: string | null;
+  onboardingCompleted: boolean;
+  emailNotifications: boolean;
+  dailyPostTime: string;
   updatedAt: string;
 }
 

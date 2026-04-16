@@ -1,12 +1,20 @@
 {
   "crons": [
     {
+      "path": "/api/cron/rss-fetch",
+      "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/daily-generate",
+      "schedule": "0 7 * * *"
+    },
+    {
       "path": "/api/cron/publish",
-      "schedule": "0 9 * * *"
+      "schedule": "0 8,12,17 * * *"
     },
     {
       "path": "/api/cron/signals",
-      "schedule": "0 8 * * *"
+      "schedule": "0 9 * * *"
     }
   ]
 }

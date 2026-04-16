@@ -84,6 +84,10 @@ export const TALCO_DEMO_DATA: AppData = {
       "Positionnement : expertise sectorielle pointue, accompagnement stratégique des dirigeants, proximité terrain. Ce n'est pas un cabinet généraliste.",
       "Objectif LinkedIn : être visible auprès des décideurs qui ont un problème juridique concret à résoudre — pas pour 'faire du contenu' mais pour déclencher des prises de contact qualifiées.",
     ].join(" "),
+    charterAcceptedAt: now,
+    onboardingCompleted: true,
+    emailNotifications: false,
+    dailyPostTime: "08:00",
     updatedAt: now,
   },
   watchlist: {

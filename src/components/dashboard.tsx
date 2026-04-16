@@ -11,6 +11,8 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 
+import { CharterModal } from "@/components/charter-modal";
+import { OnboardingWizard } from "@/components/onboarding-wizard";
 import type {
   AppData,
   Draft,
@@ -19,7 +21,7 @@ import type {
   SignalStatus,
 } from "@/lib/types";
 
-type Tab = "pilotage" | "studio" | "fondations";
+type Tab = "pilotage" | "studio" | "calendrier" | "fondations";
 
 interface DashboardProps {
   data: AppData;
@@ -411,6 +413,11 @@ export function Dashboard({ data, notices, environment }: DashboardProps) {
       {/* Subtle background */}
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(198,95,37,0.10),transparent_40%),linear-gradient(180deg,rgba(255,248,241,0.97),rgba(244,239,230,0.99))]" />
 
+      {/* ── Charter gate ── */}
+      {!data.settings.charterAcceptedAt && (
+        <CharterModal name={data.brandProfile.fullName || data.linkedin.name} />
+      )}
+
       {/* ── Paywall overlay ── */}
       {isPaywalled && <PaywallOverlay email={data.linkedin.email} />}
 
@@ -486,7 +493,7 @@ export function Dashboard({ data, notices, environment }: DashboardProps) {
 
       {/* ── Tab bar ── */}
       <nav className="relative z-10 flex h-12 shrink-0 items-stretch border-b border-black/8 bg-white/80 backdrop-blur">
-        {(["pilotage", "studio", "fondations"] as Tab[]).map((tab) => (
+        {(["pilotage", "studio", "calendrier", "fondations"] as Tab[]).map((tab) => (
           <button
             key={tab}
             type="button"
@@ -509,6 +516,11 @@ export function Dashboard({ data, notices, environment }: DashboardProps) {
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="sm:hidden"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
                 <span>Posts</span>
                 {draftsToShip > 0 && <span className="rounded-full bg-accent px-1.5 py-0.5 text-[10px] font-bold text-white">{draftsToShip}</span>}
+              </>
+            ) : tab === "calendrier" ? (
+              <>
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                <span className="hidden sm:inline">Calendrier</span>
               </>
             ) : (
               <>
@@ -539,6 +551,19 @@ export function Dashboard({ data, notices, environment }: DashboardProps) {
 
       {/* ── Content ── */}
       <div className="relative flex-1 overflow-hidden">
+
+        {/* ── Onboarding wizard (replaces all tabs until complete) ── */}
+        {data.settings.charterAcceptedAt && !data.settings.onboardingCompleted ? (
+          <OnboardingWizard
+            linkedInConnected={data.linkedin.connected}
+            hasWebsiteAnalyzed={(data.brandProfile.styleSources ?? []).some((s) => s.scrapedAt)}
+            userName={data.brandProfile.fullName || data.linkedin.name}
+          />
+        ) : null}
+
+        {/* ── Main tabs (only when onboarding is done) ── */}
+        {(data.settings.onboardingCompleted || !data.settings.charterAcceptedAt) && (
+        <>
 
         {/* ── SUJETS ── */}
         {activeTab === "pilotage" ? (
@@ -788,6 +813,13 @@ export function Dashboard({ data, notices, environment }: DashboardProps) {
           </div>
         ) : null}
 
+        {/* ── CALENDRIER ── */}
+        {activeTab === "calendrier" ? (
+          <div className="h-full overflow-y-auto p-4 sm:p-6 animate-fade-in">
+            <CalendarView drafts={data.drafts} />
+          </div>
+        ) : null}
+
         {/* ── MON PROFIL ── */}
         {activeTab === "fondations" ? (
           <div className="flex h-full flex-col overflow-y-auto sm:flex-row sm:overflow-hidden animate-fade-in">
@@ -963,6 +995,59 @@ export function Dashboard({ data, notices, environment }: DashboardProps) {
                       Sauvegarder le contexte
                     </button>
                   </section>
+
+                  {/* ── Automatisation ── */}
+                  <section className="grid gap-3">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-stone-500">Automatisation</p>
+                      <p className="mt-1 text-xs leading-5 text-stone-400">
+                        Recevez chaque matin un post prêt à valider par email. Un clic pour approuver, un clic pour refuser.
+                      </p>
+                    </div>
+                    <label className="flex cursor-pointer items-center gap-3 rounded-2xl border border-black/8 bg-white px-4 py-3">
+                      <div className="relative">
+                        <input
+                          type="checkbox"
+                          className="sr-only"
+                          checked={data.settings.emailNotifications}
+                          onChange={(e) =>
+                            runMutation("/api/settings/notifications", {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ emailNotifications: e.target.checked }),
+                            }, e.target.checked ? "Emails activés." : "Emails désactivés.")
+                          }
+                        />
+                        <div className={`h-5 w-9 rounded-full transition-colors ${data.settings.emailNotifications ? "bg-accent" : "bg-stone-200"}`} />
+                        <div className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${data.settings.emailNotifications ? "translate-x-4" : "translate-x-0.5"}`} />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-stone-900">Post quotidien par email</p>
+                        <p className="text-xs text-stone-400">{data.linkedin.email || "Connectez LinkedIn pour activer"}</p>
+                      </div>
+                    </label>
+                    {data.settings.emailNotifications && (
+                      <Field label="Heure de génération (UTC)">
+                        <input
+                          type="time"
+                          defaultValue={data.settings.dailyPostTime || "08:00"}
+                          className={inputClassName}
+                          onBlur={(e) =>
+                            runMutation("/api/settings/notifications", {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ dailyPostTime: e.target.value }),
+                            }, "Heure mise à jour.")
+                          }
+                        />
+                      </Field>
+                    )}
+                    {!process.env.NEXT_PUBLIC_EMAIL_CONFIGURED && data.settings.emailNotifications && (
+                      <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900">
+                        Ajoutez <code>RESEND_API_KEY</code> dans vos variables d'environnement pour activer l'envoi d'emails.
+                      </div>
+                    )}
+                  </section>
                 </div>
               </div>
             </div>
@@ -1051,11 +1136,135 @@ export function Dashboard({ data, notices, environment }: DashboardProps) {
           </div>
         ) : null}
 
+        </>
+        )}
+
       </div>
     </div>
   );
 }
 
+
+function CalendarView({ drafts }: { drafts: Draft[] }) {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = today.getMonth();
+
+  // Build a 5-week grid starting from the first day of the month
+  const firstDay = new Date(year, month, 1);
+  const startOffset = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1; // Mon=0
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  const cells: (number | null)[] = [
+    ...Array<null>(startOffset).fill(null),
+    ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
+  ];
+  // Pad to full weeks
+  while (cells.length % 7 !== 0) cells.push(null);
+
+  const statusColor: Partial<Record<DraftStatus, string>> = {
+    scheduled: "bg-accent text-white",
+    approved: "bg-emerald-500 text-white",
+    published: "bg-stone-700 text-white",
+    draft: "bg-stone-200 text-stone-700",
+    failed: "bg-red-400 text-white",
+  };
+
+  const monthName = today.toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
+
+  return (
+    <div className="max-w-3xl">
+      <div className="mb-6 flex items-center justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-stone-400">Vue calendrier</p>
+          <h2 className="mt-1 text-xl font-semibold capitalize tracking-[-0.03em] text-stone-950">{monthName}</h2>
+        </div>
+        <div className="flex flex-wrap gap-2 text-[10px]">
+          {[
+            { label: "Brouillon", cls: "bg-stone-200 text-stone-700" },
+            { label: "Approuvé", cls: "bg-emerald-500 text-white" },
+            { label: "Programmé", cls: "bg-accent text-white" },
+            { label: "Publié", cls: "bg-stone-700 text-white" },
+          ].map(({ label, cls }) => (
+            <span key={label} className={`rounded-full px-2 py-0.5 font-semibold ${cls}`}>{label}</span>
+          ))}
+        </div>
+      </div>
+
+      {/* Day headers */}
+      <div className="mb-1 grid grid-cols-7 gap-1">
+        {["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"].map((d) => (
+          <div key={d} className="text-center text-[10px] font-semibold uppercase tracking-wide text-stone-400">{d}</div>
+        ))}
+      </div>
+
+      {/* Calendar grid */}
+      <div className="grid grid-cols-7 gap-1">
+        {cells.map((day, i) => {
+          if (!day) return <div key={`empty-${i}`} className="h-16 rounded-xl" />;
+
+          const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+          const dayDrafts = drafts.filter((d) => {
+            const ref = d.publishAt || d.publishedAt || d.createdAt;
+            return ref?.startsWith(dateStr);
+          });
+          const isToday = day === today.getDate();
+
+          return (
+            <div
+              key={day}
+              className={`flex h-16 flex-col rounded-xl border p-1.5 ${
+                isToday ? "border-accent/40 bg-accent-soft" : "border-black/6 bg-white/60"
+              }`}
+            >
+              <span className={`mb-1 text-[10px] font-bold ${isToday ? "text-accent" : "text-stone-500"}`}>
+                {day}
+              </span>
+              <div className="flex flex-col gap-0.5 overflow-hidden">
+                {dayDrafts.slice(0, 2).map((d) => (
+                  <span
+                    key={d.id}
+                    title={d.title}
+                    className={`truncate rounded px-1 text-[8px] font-semibold leading-4 ${statusColor[d.status] ?? "bg-stone-100 text-stone-500"}`}
+                  >
+                    {d.title.length > 16 ? `${d.title.slice(0, 16)}…` : d.title}
+                  </span>
+                ))}
+                {dayDrafts.length > 2 && (
+                  <span className="text-[8px] text-stone-400">+{dayDrafts.length - 2}</span>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Upcoming list */}
+      {drafts.filter((d) => d.publishAt && d.status === "scheduled").length > 0 && (
+        <div className="mt-8">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-stone-400">Programmés à venir</p>
+          <div className="grid gap-2">
+            {drafts
+              .filter((d) => d.publishAt && d.status === "scheduled")
+              .sort((a, b) => (a.publishAt ?? "").localeCompare(b.publishAt ?? ""))
+              .map((d) => (
+                <div key={d.id} className="flex items-center gap-3 rounded-2xl border border-black/8 bg-white px-4 py-3">
+                  <div className="h-2 w-2 shrink-0 rounded-full bg-accent" />
+                  <div className="flex-1 min-w-0">
+                    <p className="truncate text-sm font-semibold text-stone-900">{d.title}</p>
+                    <p className="text-xs text-stone-400">
+                      {new Date(d.publishAt!).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" })}
+                    </p>
+                  </div>
+                  <span className="shrink-0 rounded-full bg-accent-soft px-2 py-0.5 text-[10px] font-semibold text-stone-700">Programmé</span>
+                </div>
+              ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function Spinner() {
   return (

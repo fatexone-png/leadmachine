@@ -31,8 +31,15 @@ async function verifySessionCookie(value: string): Promise<boolean> {
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Les routes LinkedIn OAuth, cron et debug passent sans auth
-  if (pathname.startsWith("/api/linkedin/") || pathname.startsWith("/api/cron/") || pathname.startsWith("/api/debug") || pathname === "/api/stripe/webhook") {
+  // Les routes LinkedIn OAuth, cron, email tokens et debug passent sans auth
+  if (
+    pathname.startsWith("/api/linkedin/") ||
+    pathname.startsWith("/api/cron/") ||
+    pathname.startsWith("/api/approve/") ||
+    pathname.startsWith("/api/reject/") ||
+    pathname.startsWith("/api/debug") ||
+    pathname === "/api/stripe/webhook"
+  ) {
     return NextResponse.next();
   }
 

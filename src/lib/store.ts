@@ -200,6 +200,11 @@ function normalizeData(data: AppData): AppData {
         "claude-sonnet-4-6",
       cronSecretConfigured: Boolean(process.env.CRON_SECRET),
       sourceContext: data.settings?.sourceContext?.trim() || DEFAULT_SOURCE_CONTEXT,
+      businessContext: data.settings?.businessContext?.trim() || "",
+      charterAcceptedAt: data.settings?.charterAcceptedAt ?? null,
+      onboardingCompleted: data.settings?.onboardingCompleted ?? false,
+      emailNotifications: data.settings?.emailNotifications ?? false,
+      dailyPostTime: data.settings?.dailyPostTime || "08:00",
     },
     watchlist: {
       accounts: sanitizeList(watchlist.accounts),
