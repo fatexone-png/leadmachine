@@ -703,10 +703,15 @@ export function Dashboard({ data, notices, environment }: DashboardProps) {
                         className={`w-full p-4 text-left transition hover:bg-stone-50 ${selectedSignal?.id === signal.id ? "bg-accent-soft/60 border-l-2 border-l-accent" : ""}`}
                       >
                         <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0">
-                            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-400">Publie par</p>
-                            <p className="truncate text-sm font-semibold text-stone-900">{signal.authorName || "Auteur inconnu"}</p>
-                            <p className="truncate text-xs text-stone-500">{signal.authorRole ? `${signal.authorRole} · ${signal.sourceLabel}` : signal.sourceLabel}</p>
+                          <div className="min-w-0 flex items-center gap-1.5">
+                            {signal.sourceType === "ai" ? (
+                              <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-semibold text-violet-700">Idée IA</span>
+                            ) : signal.sourceType === "article" ? (
+                              <span className="rounded-full bg-sky-100 px-2 py-0.5 text-[10px] font-semibold text-sky-700">Article</span>
+                            ) : (
+                              <span className="rounded-full bg-stone-100 px-2 py-0.5 text-[10px] font-semibold text-stone-600">LinkedIn</span>
+                            )}
+                            <p className="truncate text-[10px] text-stone-400">{signal.sourceLabel}</p>
                           </div>
                           <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold ${
                             signal.status === "qualified" ? "bg-emerald-100 text-emerald-800"
@@ -1529,18 +1534,22 @@ function SignalWorkbench({
       {/* ── Section 1 : Le post original ── */}
       <div>
         <p className="mb-2 text-xs font-semibold uppercase tracking-[0.22em] text-stone-400">
-          Post repéré dans votre secteur
+          {selectedSignal.sourceType === "ai" ? "Idée de post générée par l'IA" : selectedSignal.sourceType === "article" ? "Article repéré dans votre secteur" : "Post repéré dans votre réseau"}
         </p>
-        <div className="rounded-[1.75rem] border border-black/10 bg-white shadow-[0_4px_20px_rgba(0,0,0,0.06)]">
-          {/* Auteur */}
+        <div className={`rounded-[1.75rem] border bg-white shadow-[0_4px_20px_rgba(0,0,0,0.06)] ${selectedSignal.sourceType === "ai" ? "border-violet-200" : "border-black/10"}`}>
+          {/* Header */}
           <div className="flex items-center gap-3 border-b border-black/6 px-5 py-4">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-stone-100 text-sm font-bold text-stone-600">
-              {getSignalAuthorInitials(selectedSignal.authorName)}
+            <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold ${selectedSignal.sourceType === "ai" ? "bg-violet-100 text-violet-700" : "bg-stone-100 text-stone-600"}`}>
+              {selectedSignal.sourceType === "ai" ? "✦" : getSignalAuthorInitials(selectedSignal.authorName)}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-400">Publié par</p>
-              <p className="truncate text-sm font-semibold text-stone-950">{selectedSignal.authorName || "Auteur inconnu"}</p>
-              <p className="text-xs text-stone-400">{authorMeta}</p>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-stone-400">
+                {selectedSignal.sourceType === "ai" ? "Suggestion PostPilote IA" : selectedSignal.sourceType === "article" ? "Source" : "Publié par"}
+              </p>
+              <p className="truncate text-sm font-semibold text-stone-950">
+                {selectedSignal.sourceType === "ai" ? selectedSignal.authorRole : (selectedSignal.authorName || "Auteur inconnu")}
+              </p>
+              <p className="text-xs text-stone-400">{selectedSignal.sourceType === "ai" ? "Basé sur votre profil et activité" : authorMeta}</p>
             </div>
             <div className="flex items-center gap-2">
               <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${
@@ -1590,7 +1599,9 @@ function SignalWorkbench({
           {/* Pourquoi ce post vous concerne */}
           {selectedSignal.fitReasons.length > 0 ? (
             <div className="border-t border-black/6 px-5 py-3">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-stone-400">Pourquoi commenter ce post</p>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-stone-400">
+                {selectedSignal.sourceType === "ai" ? "Pourquoi écrire ce post" : "Pourquoi commenter ce post"}
+              </p>
               <div className="flex flex-wrap gap-2">
                 {selectedSignal.fitReasons.map((reason) => (
                   <span key={reason} className="rounded-full border border-black/8 bg-stone-50 px-3 py-1 text-xs text-stone-600">
@@ -1606,7 +1617,7 @@ function SignalWorkbench({
       {/* ── Section 2 : Vos actions ── */}
       <div>
         <p className="mb-2 text-xs font-semibold uppercase tracking-[0.22em] text-stone-400">
-          Rédiger votre commentaire
+          {selectedSignal.sourceType === "ai" ? "Rédiger ce post" : "Rédiger votre commentaire"}
         </p>
         <div className="rounded-[1.75rem] border border-black/8 bg-white p-5">
           <div className="grid gap-3 sm:grid-cols-2">
@@ -1642,7 +1653,9 @@ function SignalWorkbench({
               disabled={isPending}
               onClick={() => onGenerateComment(selectedSignal.id)}
             >
-              {suggestion ? "Regénérer le commentaire" : "Proposer un commentaire"}
+              {selectedSignal.sourceType === "ai"
+                ? (suggestion ? "Regénérer le post" : "Rédiger ce post")
+                : (suggestion ? "Regénérer le commentaire" : "Proposer un commentaire")}
             </button>
             <button
               type="button"
@@ -1769,7 +1782,7 @@ function SignalWorkbench({
           </section>
         </>
       ) : (
-        <EmptyState message="Clique sur `Proposer un commentaire` pour transformer ce signal brut en reaction vraiment actionnable." />
+        <EmptyState message={selectedSignal.sourceType === "ai" ? "Clique sur `Rédiger ce post` pour que l'IA rédige un post complet sur ce sujet." : "Clique sur `Proposer un commentaire` pour transformer ce signal brut en réaction vraiment actionnable."} />
       )}
     </div>
   );
