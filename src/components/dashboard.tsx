@@ -767,7 +767,7 @@ export function Dashboard({ data, notices, environment }: DashboardProps) {
                           <div className="min-w-0 flex items-center gap-1.5">
                             {signal.sourceType === "ai" ? (
                               <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[10px] font-semibold text-violet-700">Idée IA</span>
-                            ) : signal.sourceType === "article" ? (
+                            ) : signal.sourceType === "rss" || signal.sourceType === "article" ? (
                               <span className="rounded-full bg-sky-100 px-2 py-0.5 text-[10px] font-semibold text-sky-700">Article</span>
                             ) : (
                               <span className="rounded-full bg-stone-100 px-2 py-0.5 text-[10px] font-semibold text-stone-600">LinkedIn</span>
@@ -1599,7 +1599,7 @@ function SignalWorkbench({
       {/* ── Section 1 : Le post original ── */}
       <div>
         <p className="mb-2 text-xs font-semibold uppercase tracking-[0.22em] text-stone-400">
-          {selectedSignal.sourceType === "ai" ? "Idée de post générée par l'IA" : selectedSignal.sourceType === "article" ? "Article repéré dans votre secteur" : "Post repéré dans votre réseau"}
+          {selectedSignal.sourceType === "ai" ? "Idée de post générée par l'IA" : (selectedSignal.sourceType === "rss" || selectedSignal.sourceType === "article") ? "Article repéré dans votre secteur" : "Post repéré dans votre réseau"}
         </p>
         <div className={`rounded-[1.75rem] border bg-white shadow-[0_4px_20px_rgba(0,0,0,0.06)] ${selectedSignal.sourceType === "ai" ? "border-violet-200" : "border-black/10"}`}>
           {/* Header */}
@@ -1631,7 +1631,7 @@ function SignalWorkbench({
                   rel="noreferrer"
                   className="rounded-full border border-black/10 bg-stone-50 px-3 py-1 text-xs font-semibold text-stone-700 transition hover:bg-stone-100"
                 >
-                  {selectedSignal.sourceType === "article" ? "Lire l'article ↗" : `Voir sur ${selectedSignal.sourceLabel} ↗`}
+                  {selectedSignal.sourceType === "rss" || selectedSignal.sourceType === "article" ? `Lire sur ${selectedSignal.sourceLabel} ↗` : `Voir sur ${selectedSignal.sourceLabel} ↗`}
                 </a>
               ) : (
                 <span className="rounded-full border border-dashed border-black/12 px-3 py-1 text-xs text-stone-400">
