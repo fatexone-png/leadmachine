@@ -905,6 +905,7 @@ export function Dashboard({ data, notices, environment }: DashboardProps) {
                     key={`${selectedDraft.id}-${selectedDraft.updatedAt}`}
                     draft={selectedDraft}
                     isPending={isPending}
+                    dailyPostTime={data.settings.dailyPostTime}
                     onAction={(form, action) => handleDraftAction(form, selectedDraft.id, action)}
                   />
                 ) : null}
@@ -1835,12 +1836,24 @@ function DraftCard({
   draft,
   isPending,
   onAction,
+  dailyPostTime,
 }: {
   draft: Draft;
   isPending: boolean;
   onAction: (form: HTMLFormElement, action: string) => void;
+  dailyPostTime?: string;
 }) {
   const [showEdit, setShowEdit] = useState(false);
+
+  // Default schedule: tomorrow at dailyPostTime (e.g. "08:00" UTC → shown in local datetime-local)
+  const defaultSchedule = (() => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const [h, m] = (dailyPostTime || "08:00").split(":").map(Number);
+    tomorrow.setUTCHours(h, m, 0, 0);
+    // datetime-local format: YYYY-MM-DDTHH:MM
+    return tomorrow.toISOString().slice(0, 16);
+  })();
 
   return (
     <form
@@ -1893,17 +1906,25 @@ function DraftCard({
           Publier maintenant
         </button>
 
-        <button
-          type="button"
-          className={`inline-flex items-center gap-2 rounded-full border border-black/10 px-4 py-2.5 text-sm font-semibold text-stone-700 transition hover:bg-stone-50 ${isPending ? "opacity-60" : ""}`}
-          disabled={isPending}
-          onClick={(event) => {
-            const form = event.currentTarget.form;
-            if (form) onAction(form, "approve");
-          }}
-        >
-          Programmer
-        </button>
+        <div className="flex items-center gap-1.5 rounded-full border border-black/10 bg-stone-50 pr-1">
+          <input
+            type="datetime-local"
+            name="publishAt"
+            defaultValue={draft.publishAt ? toDateTimeLocal(draft.publishAt) : defaultSchedule}
+            className="bg-transparent pl-3 text-xs text-stone-700 outline-none"
+          />
+          <button
+            type="button"
+            className={`shrink-0 rounded-full bg-stone-900 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-stone-700 ${isPending ? "opacity-60" : ""}`}
+            disabled={isPending}
+            onClick={(event) => {
+              const form = event.currentTarget.closest("form") as HTMLFormElement | null;
+              if (form) onAction(form, "approve");
+            }}
+          >
+            Programmer
+          </button>
+        </div>
 
         <button
           type="button"
