@@ -1886,11 +1886,23 @@ function DraftCard({
           disabled={isPending}
           onClick={(event) => {
             const form = event.currentTarget.form;
+            if (form) onAction(form, "publishNow");
+          }}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+          Publier maintenant
+        </button>
+
+        <button
+          type="button"
+          className={`inline-flex items-center gap-2 rounded-full border border-black/10 px-4 py-2.5 text-sm font-semibold text-stone-700 transition hover:bg-stone-50 ${isPending ? "opacity-60" : ""}`}
+          disabled={isPending}
+          onClick={(event) => {
+            const form = event.currentTarget.form;
             if (form) onAction(form, "approve");
           }}
         >
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-          Approuver & programmer
+          Programmer
         </button>
 
         <button
@@ -1898,7 +1910,7 @@ function DraftCard({
           onClick={() => setShowEdit((v) => !v)}
           className="ml-auto rounded-full border border-black/10 px-3 py-2 text-xs font-medium text-stone-500 transition hover:bg-stone-50"
         >
-          {showEdit ? "Masquer l'édition" : "Modifier"}
+          {showEdit ? "Masquer" : "Modifier"}
         </button>
       </div>
 
