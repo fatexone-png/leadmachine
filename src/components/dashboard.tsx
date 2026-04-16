@@ -340,6 +340,41 @@ export function Dashboard({ data, notices, environment }: DashboardProps) {
     });
   }
 
+  function handleGenerateDraftFromTopic(signal: Signal) {
+    startTransition(async () => {
+      const spark = [signal.title, signal.sourceText].filter(Boolean).join("\n\n");
+      const response = await fetch("/api/drafts/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          spark,
+          audience: strategy.targetAudience || data.brandProfile.audiences[0] || "",
+          objective: strategy.objective || "partager une expertise",
+          cta: data.brandProfile.preferredCallsToAction[0] || "",
+          sourceContext,
+        }),
+      });
+
+      const payload = (await response.json().catch(() => ({}))) as { error?: string; draftId?: string };
+
+      if (!response.ok) {
+        showToast(payload.error || "Impossible de générer le post.", true);
+        return;
+      }
+
+      // Mark signal as handled and switch to Studio tab
+      await fetch(`/api/signals/${signal.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "markHandled" }),
+      });
+
+      showToast("Post rédigé — retrouvez-le dans l'onglet Posts.");
+      router.refresh();
+      setActiveTab("studio");
+    });
+  }
+
   function handleGenerateCommentForSignal(signalId: string) {
     startTransition(async () => {
       const response = await fetch(`/api/signals/${signalId}/comment`, {
@@ -747,6 +782,7 @@ export function Dashboard({ data, notices, environment }: DashboardProps) {
                   isPending={isPending}
                   onCopyComment={handleCopyComment}
                   onGenerateComment={handleGenerateCommentForSignal}
+                  onGenerateDraft={handleGenerateDraftFromTopic}
                   onSignalAction={handleSignalAction}
                   selectedSignal={selectedSignal}
                   setStrategy={setStrategy}
@@ -1505,6 +1541,7 @@ function SignalWorkbench({
   isPending,
   onCopyComment,
   onGenerateComment,
+  onGenerateDraft,
   onSignalAction,
   selectedSignal,
   setStrategy,
@@ -1514,6 +1551,7 @@ function SignalWorkbench({
   isPending: boolean;
   onCopyComment: (comment: string, index: number) => Promise<void>;
   onGenerateComment: (signalId: string) => void;
+  onGenerateDraft: (signal: Signal) => void;
   onSignalAction: (
     signalId: string,
     action: "qualify" | "reject" | "selectComment" | "markHandled" | "reopen",
@@ -1651,10 +1689,12 @@ function SignalWorkbench({
               type="button"
               className={primaryButtonClassName}
               disabled={isPending}
-              onClick={() => onGenerateComment(selectedSignal.id)}
+              onClick={() => selectedSignal.sourceType === "ai"
+                ? onGenerateDraft(selectedSignal)
+                : onGenerateComment(selectedSignal.id)}
             >
               {selectedSignal.sourceType === "ai"
-                ? (suggestion ? "Regénérer le post" : "Rédiger ce post")
+                ? (isPending ? "Rédaction en cours…" : "Rédiger ce post")
                 : (suggestion ? "Regénérer le commentaire" : "Proposer un commentaire")}
             </button>
             <button
