@@ -1689,28 +1689,30 @@ function SignalWorkbench({
 
       {selectedSignal.selectedComment ? (
         <section className="rounded-[1.75rem] border border-emerald-200 bg-emerald-50 p-5 text-sm leading-6 text-emerald-950">
-          <p className="text-xs uppercase tracking-[0.22em] text-emerald-700">Commentaire retenu</p>
+          <p className="text-xs uppercase tracking-[0.22em] text-emerald-700">Commentaire prêt à publier</p>
           <p className="mt-3 whitespace-pre-wrap">{selectedSignal.selectedComment}</p>
-          <p className="mt-3 text-xs leading-5 text-emerald-800/80">
-            Copiez ce commentaire, publiez-le manuellement sur LinkedIn, puis marquez ce sujet comme traité.
-          </p>
           <div className="mt-4 flex flex-wrap gap-3">
+            <a
+              href="https://www.linkedin.com/feed/"
+              target="_blank"
+              rel="noreferrer"
+              onClick={() => onCopyComment(selectedSignal.selectedComment as string, 99)}
+              className={`inline-flex items-center gap-2 rounded-full bg-[#0A66C2] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#0958a8] ${copiedCommentIndex === 99 ? "opacity-80" : ""}`}
+            >
+              {copiedCommentIndex === 99 ? "Texte copié — collez-le sur LinkedIn ✓" : "Publier sur LinkedIn →"}
+            </a>
             <button
               type="button"
               className={secondaryButtonClassName}
-              onClick={() => onCopyComment(selectedSignal.selectedComment as string, 99)}
-            >
-              {copiedCommentIndex === 99 ? "Copie" : "Copier le commentaire"}
-            </button>
-            <button
-              type="button"
-              className={primaryButtonClassName}
               disabled={isPending}
               onClick={() => onSignalAction(selectedSignal.id, "markHandled")}
             >
               Marquer comme traité
             </button>
           </div>
+          {copiedCommentIndex === 99 && (
+            <p className="mt-2 text-xs text-emerald-700">Le texte est dans votre presse-papiers — collez-le dans le commentaire LinkedIn.</p>
+          )}
         </section>
       ) : null}
 
@@ -1745,20 +1747,22 @@ function SignalWorkbench({
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2">
+                    <a
+                      href="https://www.linkedin.com/feed/"
+                      target="_blank"
+                      rel="noreferrer"
+                      onClick={() => onCopyComment(comment, index)}
+                      className="inline-flex items-center gap-2 rounded-full bg-[#0A66C2] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#0958a8]"
+                    >
+                      {copiedCommentIndex === index ? "Texte copié ✓" : "Publier sur LinkedIn →"}
+                    </a>
                     <button
                       type="button"
                       className={secondaryButtonClassName}
-                      onClick={() => onCopyComment(comment, index)}
-                    >
-                      {copiedCommentIndex === index ? "Copie" : "Copier"}
-                    </button>
-                    <button
-                      type="button"
-                      className={primaryButtonClassName}
                       disabled={isPending}
                       onClick={() => onSignalAction(selectedSignal.id, "selectComment", comment)}
                     >
-                      Retenir
+                      Sauvegarder
                     </button>
                   </div>
                 </div>
@@ -1796,22 +1800,7 @@ function DraftCard({
   isPending: boolean;
   onAction: (form: HTMLFormElement, action: string) => void;
 }) {
-  const [copied, setCopied] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
-
-  function copyPost() {
-    const text = [
-      draft.content,
-      draft.cta ? `\n${draft.cta}` : "",
-      draft.hashtags.length > 0 ? `\n${draft.hashtags.join(" ")}` : "",
-    ]
-      .join("")
-      .trim();
-    navigator.clipboard.writeText(text).then(() => {
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 2000);
-    });
-  }
 
   return (
     <form
@@ -1851,39 +1840,17 @@ function DraftCard({
 
       {/* ── Actions principales ── */}
       <div className="flex flex-wrap items-center gap-3 border-t border-black/6 px-5 py-4">
-        {/* Copier = action principale */}
         <button
           type="button"
-          onClick={copyPost}
-          className={`inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition ${
-            copied
-              ? "bg-emerald-100 text-emerald-700"
-              : "bg-accent text-white hover:bg-accent-strong"
-          }`}
-        >
-          {copied ? (
-            <>
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-              Copié !
-            </>
-          ) : (
-            <>
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
-              Copier le post
-            </>
-          )}
-        </button>
-
-        <button
-          type="button"
-          className={secondaryButtonClassName}
+          className={`inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition ${isPending ? "opacity-60" : ""} bg-accent text-white hover:bg-accent-strong`}
           disabled={isPending}
           onClick={(event) => {
             const form = event.currentTarget.form;
             if (form) onAction(form, "approve");
           }}
         >
-          Approuver
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+          Approuver & programmer
         </button>
 
         <button
