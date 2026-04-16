@@ -10,7 +10,7 @@
     },
     {
       "path": "/api/cron/publish",
-      "schedule": "0 8,12,17 * * *"
+      "schedule": "0 8 * * *"
     },
     {
       "path": "/api/cron/signals",
