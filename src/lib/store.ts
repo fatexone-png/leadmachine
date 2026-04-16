@@ -201,8 +201,10 @@ function normalizeData(data: AppData): AppData {
       cronSecretConfigured: Boolean(process.env.CRON_SECRET),
       sourceContext: data.settings?.sourceContext?.trim() || DEFAULT_SOURCE_CONTEXT,
       businessContext: data.settings?.businessContext?.trim() || "",
-      charterAcceptedAt: data.settings?.charterAcceptedAt ?? null,
-      onboardingCompleted: data.settings?.onboardingCompleted ?? false,
+      charterAcceptedAt: data.settings?.charterAcceptedAt
+        ?? (data.linkedin?.connected === true ? new Date().toISOString() : null),
+      onboardingCompleted: data.settings?.onboardingCompleted
+        ?? (Boolean(data.brandProfile?.websiteUrl) && data.linkedin?.connected === true),
       emailNotifications: data.settings?.emailNotifications ?? false,
       dailyPostTime: data.settings?.dailyPostTime || "08:00",
     },
