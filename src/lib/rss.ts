@@ -10,9 +10,9 @@ export interface RssItem {
 
 export const RSS_FEEDS: { url: string; label: string; sector: string[] }[] = [
   {
-    url: "https://www.village-justice.com/rss.php",
-    label: "Village de la Justice",
-    sector: ["juridique", "droit", "avocat", "barreau"],
+    url: "https://www.lesechos.fr/rss/rss_une.xml",
+    label: "Les Échos",
+    sector: ["business", "économie", "finance", "entreprise"],
   },
   {
     url: "https://www.lemonde.fr/economie/rss_full.xml",
@@ -20,14 +20,9 @@ export const RSS_FEEDS: { url: string; label: string; sector: string[] }[] = [
     sector: ["business", "économie", "entreprise"],
   },
   {
-    url: "https://www.lesechos.fr/rss/rss_une.xml",
-    label: "Les Échos",
-    sector: ["business", "économie", "finance", "entreprise"],
-  },
-  {
-    url: "https://www.bfmtv.com/rss/economie/",
-    label: "BFM TV — Économie",
-    sector: ["business", "économie", "finance"],
+    url: "https://www.challenges.fr/rss.xml",
+    label: "Challenges",
+    sector: ["business", "entrepreneurs", "management"],
   },
   {
     url: "https://www.lefigaro.fr/rss/figaro_actualites.xml",
@@ -35,9 +30,24 @@ export const RSS_FEEDS: { url: string; label: string; sector: string[] }[] = [
     sector: ["actualité", "business", "politique"],
   },
   {
-    url: "https://www.challenges.fr/rss.xml",
-    label: "Challenges",
-    sector: ["business", "entrepreneurs", "management"],
+    url: "https://www.bfmtv.com/rss/economie/",
+    label: "BFM TV — Économie",
+    sector: ["business", "économie", "finance"],
+  },
+  {
+    url: "https://www.village-justice.com/rss.php",
+    label: "Village de la Justice",
+    sector: ["juridique", "droit", "avocat", "barreau"],
+  },
+  {
+    url: "https://www.hbrfrance.fr/feed",
+    label: "Harvard Business Review France",
+    sector: ["management", "leadership", "stratégie", "ressources humaines"],
+  },
+  {
+    url: "https://www.usinenouvelle.com/rss/",
+    label: "L'Usine Nouvelle",
+    sector: ["industrie", "innovation", "entreprise", "management"],
   },
 ];
 

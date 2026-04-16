@@ -6,7 +6,7 @@ import { getSession } from "@/lib/session";
 import { readStore, writeStore } from "@/lib/store";
 
 const MAX_SIGNALS_PER_USER = 30;
-const MIN_SCORE = 55;
+const MIN_SCORE = 40; // lower threshold for manual refresh
 
 export async function POST() {
   const session = await getSession();
@@ -33,13 +33,13 @@ export async function POST() {
     store.brandProfile.headline,
   ].filter(Boolean);
 
-  const relevant = keywords.length > 0
+  // Try keyword filter first, fall back to all items if no match
+  let relevant = keywords.length > 0
     ? filterRssItemsByKeywords(allItems, keywords)
-    : allItems.slice(0, 10);
+    : allItems;
 
-  if (relevant.length === 0) {
-    return Response.json({ added: 0, message: "Aucun article pertinent pour votre profil. Ajoutez des mots-clés dans votre profil." });
-  }
+  // If keyword filter returned nothing, use all items (let Claude score them)
+  if (relevant.length === 0) relevant = allItems.slice(0, 10);
 
   const existingHashes = new Set(store.signals.map((s) => s.contentHash));
   let added = 0;

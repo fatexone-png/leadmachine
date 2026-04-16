@@ -650,7 +650,11 @@ export function Dashboard({ data, notices, environment }: DashboardProps) {
                     onClick={() => {
                       setAutoGenerating(true);
                       fetch("/api/cron/rss-fetch/user", { method: "POST" })
-                        .then(() => router.refresh())
+                        .then(async (res) => {
+                          const data = await res.json() as { added: number; message: string };
+                          showToast(data.message || "Veille terminée.");
+                          router.refresh();
+                        })
                         .catch(() => showToast("Erreur lors de la veille.", true))
                         .finally(() => setAutoGenerating(false));
                     }}
