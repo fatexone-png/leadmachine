@@ -887,16 +887,93 @@ export function Dashboard({ data, notices, environment }: DashboardProps) {
                     </div>
                   </section>
 
-                  {/* ── Sources d'inspiration ── */}
+                  {/* ── Site principal ── */}
                   <section className="grid gap-3">
                     <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-stone-500">Sources d'inspiration</p>
+                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-stone-500">Votre site principal</p>
                       <p className="mt-1 text-xs leading-5 text-stone-400">
-                        L'IA visite ces pages, capture leur plume et construit votre style éditorial unique.
+                        L'IA s'en sert pour comprendre <strong className="text-stone-600">ce dont vous parlez</strong> — votre activité, vos clients, vos domaines d'expertise. C'est la base de chaque post généré.
                       </p>
                     </div>
 
-                    {/* Existing sources */}
+                    {data.brandProfile.websiteUrl ? (
+                      <div className="flex items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-3 py-3">
+                        <div className="flex-1 min-w-0">
+                          <p className="truncate text-xs font-semibold text-stone-900">{data.brandProfile.websiteUrl.replace(/https?:\/\//, "")}</p>
+                          <p className="text-[10px] text-emerald-700 mt-0.5">Mémorisé · mise à jour si votre contenu évolue</p>
+                        </div>
+                        <button
+                          type="button"
+                          title="Re-analyser ce site"
+                          disabled={isPending || scrapingSourceId === "main"}
+                          onClick={() => {
+                            setScrapingSourceId("main");
+                            startTransition(async () => {
+                              const res = await fetch("/api/profile/scrape", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ url: data.brandProfile.websiteUrl, label: "Mon site", isMainWebsite: true }),
+                              });
+                              const payload = (await res.json().catch(() => ({}))) as { error?: string; message?: string };
+                              setScrapingSourceId(null);
+                              showToast(res.ok ? "Site re-analysé." : (payload.error || "Erreur."), !res.ok);
+                              if (res.ok) router.refresh();
+                            });
+                          }}
+                          className="shrink-0 rounded-full border border-black/10 bg-white px-3 py-1 text-[10px] font-semibold text-stone-600 transition hover:bg-stone-100 disabled:opacity-40"
+                        >
+                          {scrapingSourceId === "main" ? "…" : "↻ Re-analyser"}
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="grid gap-2">
+                        <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+                          Aucun site configuré — l'IA génère des posts génériques. Ajoutez votre site pour des posts ancrés dans votre activité réelle.
+                        </p>
+                        <div className="flex gap-2">
+                          <input
+                            type="url"
+                            value={newSourceUrl}
+                            onChange={(e) => setNewSourceUrl(e.target.value)}
+                            placeholder="https://votresite.fr"
+                            className={`${inputClassName} flex-1`}
+                          />
+                          <button
+                            type="button"
+                            disabled={isPending || !newSourceUrl.trim()}
+                            onClick={() => {
+                              if (!newSourceUrl.trim()) return;
+                              setScrapingSourceId("main");
+                              startTransition(async () => {
+                                const res = await fetch("/api/profile/scrape", {
+                                  method: "POST",
+                                  headers: { "Content-Type": "application/json" },
+                                  body: JSON.stringify({ url: newSourceUrl.trim(), label: "Mon site", isMainWebsite: true }),
+                                });
+                                const payload = (await res.json().catch(() => ({}))) as { error?: string; message?: string };
+                                setScrapingSourceId(null);
+                                if (res.ok) { setNewSourceUrl(""); showToast("Site analysé et mémorisé."); router.refresh(); }
+                                else showToast(payload.error || "Erreur.", true);
+                              });
+                            }}
+                            className="shrink-0 rounded-full bg-stone-950 px-4 py-2 text-xs font-semibold text-white transition hover:bg-stone-800 disabled:opacity-40"
+                          >
+                            {scrapingSourceId === "main" ? "…" : "Analyser"}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </section>
+
+                  {/* ── Sources de style ── */}
+                  <section className="grid gap-3">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-stone-500">Sources de style <span className="normal-case font-normal text-stone-400">(optionnel)</span></p>
+                      <p className="mt-1 text-xs leading-5 text-stone-400">
+                        Ajoutez des pages qui vous inspirent sur <strong className="text-stone-600">comment écrire</strong> — un confrère dont vous aimez la plume, un auteur LinkedIn, votre blog…
+                      </p>
+                    </div>
+
                     {styleSources.length > 0 && (
                       <div className="grid gap-2">
                         {styleSources.map((src) => (
@@ -944,31 +1021,35 @@ export function Dashboard({ data, notices, environment }: DashboardProps) {
                       </div>
                     )}
 
-                    {/* Add new source */}
                     <div className="grid gap-2">
-                      <input
-                        type="url"
-                        value={newSourceUrl}
-                        onChange={(e) => setNewSourceUrl(e.target.value)}
-                        placeholder="https://monsite.fr ou linkedin.com/in/..."
-                        className={inputClassName}
-                      />
                       <div className="flex gap-2">
+                        <input
+                          type="url"
+                          value={data.brandProfile.websiteUrl ? newSourceUrl : ""}
+                          onChange={(e) => setNewSourceUrl(e.target.value)}
+                          placeholder="https://confrere.fr ou linkedin.com/in/..."
+                          className={`${inputClassName} flex-1`}
+                          disabled={!data.brandProfile.websiteUrl}
+                        />
                         <input
                           value={newSourceLabel}
                           onChange={(e) => setNewSourceLabel(e.target.value)}
-                          placeholder="Nom (ex: Mon site, Confrère inspirant…)"
-                          className={`${inputClassName} flex-1`}
+                          placeholder="Nom…"
+                          className={`${inputClassName} w-28`}
+                          disabled={!data.brandProfile.websiteUrl}
                         />
                         <button
                           type="button"
                           onClick={handleAddSource}
-                          disabled={isPending || !newSourceUrl.trim()}
+                          disabled={isPending || !newSourceUrl.trim() || !data.brandProfile.websiteUrl}
                           className="shrink-0 rounded-full bg-stone-950 px-4 py-2 text-xs font-semibold text-white transition hover:bg-stone-800 disabled:opacity-40"
                         >
                           + Ajouter
                         </button>
                       </div>
+                      {!data.brandProfile.websiteUrl && (
+                        <p className="text-[10px] text-stone-400">Configurez d'abord votre site principal ci-dessus.</p>
+                      )}
                     </div>
                   </section>
 
