@@ -439,7 +439,7 @@ export function Dashboard({ data, notices, environment }: DashboardProps) {
       <header className="relative z-10 flex h-14 shrink-0 items-center justify-between border-b border-black/8 bg-white/90 px-4 backdrop-blur sm:px-5">
         <div className="flex items-center gap-3">
           <Link href="/" className="text-sm font-bold tracking-tight text-stone-950 transition hover:opacity-70">
-            LeadMachine
+            PostPilote
           </Link>
           {data.brandProfile.fullName ? (
             <>

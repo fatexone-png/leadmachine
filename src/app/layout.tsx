@@ -13,9 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "LeadMachine",
+  title: "PostPilote",
   description:
-    "LeadMachine repere des signaux editoriaux, propose des commentaires et pilote la prise de parole LinkedIn.",
+    "PostPilote repere des signaux editoriaux, propose des commentaires et pilote la prise de parole LinkedIn.",
 };
 
 export default function RootLayout({

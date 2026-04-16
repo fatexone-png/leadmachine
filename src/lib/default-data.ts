@@ -102,7 +102,7 @@ export function createDefaultData(): AppData {
       lastSyncAt: null,
     },
     settings: {
-      appName: "LeadMachine",
+      appName: "PostPilote",
       aiModel: process.env.CLAUDE_MODEL || "claude-sonnet-4-6",
       cronSecretConfigured: Boolean(process.env.CRON_SECRET),
       sourceContext: "",

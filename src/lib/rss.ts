@@ -48,7 +48,7 @@ export async function fetchRssItems(feedUrl: string, sourceLabel: string): Promi
   try {
     const response = await fetch(feedUrl, {
       headers: {
-        "User-Agent": "LeadMachine/1.0 (+https://tail-rho.vercel.app)",
+        "User-Agent": "PostPilote/1.0 (+https://tail-rho.vercel.app)",
         Accept: "application/rss+xml, application/xml, text/xml",
       },
       signal: AbortSignal.timeout(8000),

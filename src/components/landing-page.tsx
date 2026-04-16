@@ -10,7 +10,7 @@ export function LandingPage({ linkedInConfigured, error }: LandingPageProps) {
     <div className="min-h-screen bg-background text-foreground">
       {/* ── Nav ── */}
       <nav className="mx-auto flex max-w-5xl items-center justify-between px-5 py-5 sm:px-8">
-        <span className="text-sm font-bold tracking-[-0.02em] text-stone-900">LeadMachine</span>
+        <span className="text-sm font-bold tracking-[-0.02em] text-stone-900">PostPilote</span>
         <Link href="/upgrade" className="text-sm text-stone-500 transition hover:text-stone-800">
           Tarifs
         </Link>
@@ -26,7 +26,7 @@ export function LandingPage({ linkedInConfigured, error }: LandingPageProps) {
           <span className="text-accent">Sans y passer du temps.</span>
         </h1>
         <p className="mt-6 max-w-2xl text-lg leading-8 text-stone-600">
-          LeadMachine analyse votre site web, capte votre plume, puis rédige et publie des posts LinkedIn
+          PostPilote analyse votre site web, capte votre plume, puis rédige et publie des posts LinkedIn
           dans votre voix — chaque semaine, en automatique. Vous validez en 30 secondes.
         </p>
 
@@ -100,7 +100,7 @@ export function LandingPage({ linkedInConfigured, error }: LandingPageProps) {
           <Step
             number="2"
             title="L'IA scrute votre site"
-            body="LeadMachine visite votre site, analyse votre plume, votre positionnement et vos messages clés."
+            body="PostPilote visite votre site, analyse votre plume, votre positionnement et vos messages clés."
             accent={true}
           />
           <Step

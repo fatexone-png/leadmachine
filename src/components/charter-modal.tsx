@@ -33,7 +33,7 @@ export function CharterModal({ name }: { name: string | null }) {
         <div className="shrink-0 border-b border-black/8 px-8 py-6">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-stone-400">Avant de commencer</p>
           <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-stone-950">
-            Charte d'utilisation de LeadMachine
+            Charte d'utilisation de PostPilote
           </h2>
           {name && (
             <p className="mt-1 text-sm text-stone-500">
@@ -50,7 +50,7 @@ export function CharterModal({ name }: { name: string | null }) {
         >
           <Section title="1. Responsabilité éditoriale">
             <p>
-              LeadMachine est un outil d'assistance à la création de contenu. Toute publication effectuée
+              PostPilote est un outil d'assistance à la création de contenu. Toute publication effectuée
               via la plateforme est placée sous la seule et entière responsabilité de l'utilisateur.
               L'intelligence artificielle propose — l'utilisateur décide. Aucun post ne peut être publié
               sans validation explicite de votre part.
@@ -59,7 +59,7 @@ export function CharterModal({ name }: { name: string | null }) {
 
           <Section title="2. Conformité déontologique">
             <p>
-              L'utilisation de LeadMachine ne vous exonère pas du respect des règles déontologiques
+              L'utilisation de PostPilote ne vous exonère pas du respect des règles déontologiques
               propres à votre profession :
             </p>
             <ul className="mt-2 list-disc pl-5 space-y-1">
@@ -75,12 +75,12 @@ export function CharterModal({ name }: { name: string | null }) {
 
           <Section title="3. Secret professionnel et données confidentielles">
             <p>
-              Ne communiquez jamais à LeadMachine des informations protégées par le secret professionnel :
+              Ne communiquez jamais à PostPilote des informations protégées par le secret professionnel :
               noms de clients, dossiers en cours, stratégies défense, données financières confidentielles,
               ou toute information susceptible d'identifier un tiers sans son consentement.
             </p>
             <p className="mt-3">
-              LeadMachine n'est pas conçu pour traiter des données à caractère personnel au sens du RGPD
+              PostPilote n'est pas conçu pour traiter des données à caractère personnel au sens du RGPD
               dans le cadre de dossiers clients. Toute information renseignée dans l'application doit être
               d'ordre éditorial et non confidentiel.
             </p>
@@ -90,7 +90,7 @@ export function CharterModal({ name }: { name: string | null }) {
             <p>
               Les contenus générés par l'IA peuvent contenir des inexactitudes, des raccourcis ou des
               formulations inappropriées. Il vous incombe de relire et vérifier chaque brouillon avant
-              validation. LeadMachine ne garantit pas l'exactitude juridique, factuelle ou déontologique
+              validation. PostPilote ne garantit pas l'exactitude juridique, factuelle ou déontologique
               des contenus produits.
             </p>
           </Section>
@@ -122,7 +122,7 @@ export function CharterModal({ name }: { name: string | null }) {
           </Section>
 
           <div className="mt-6 rounded-3xl border border-amber-200 bg-amber-50 p-4 text-xs leading-6 text-amber-900">
-            <strong>En résumé :</strong> LeadMachine travaille pour vous, mais vous restez le seul
+            <strong>En résumé :</strong> PostPilote travaille pour vous, mais vous restez le seul
             responsable de ce qui est publié en votre nom. L'IA propose, vous décidez — toujours.
           </div>
 
@@ -144,7 +144,7 @@ export function CharterModal({ name }: { name: string | null }) {
             />
             <span className="text-sm leading-6 text-stone-700">
               J'ai lu et j'accepte cette charte. Je comprends que je suis seul(e) responsable de chaque
-              publication effectuée via LeadMachine.
+              publication effectuée via PostPilote.
             </span>
           </label>
           <button

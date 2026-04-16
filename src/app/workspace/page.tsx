@@ -10,9 +10,9 @@ import { readStore } from "@/lib/store";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Workspace | LeadMachine",
+  title: "Workspace | PostPilote",
   description:
-    "Le cockpit LeadMachine pour qualifier des signaux, valider des commentaires et piloter la publication.",
+    "Le cockpit PostPilote pour qualifier des signaux, valider des commentaires et piloter la publication.",
 };
 
 type PageProps = {

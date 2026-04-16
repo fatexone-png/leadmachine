@@ -2,7 +2,7 @@ import { Resend } from "resend";
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
-const FROM = process.env.FROM_EMAIL || "LeadMachine <noreply@leadmachine.fr>";
+const FROM = process.env.FROM_EMAIL || "PostPilote <noreply@postpilote.fr>";
 const APP_URL = process.env.APP_URL || "https://tail-rho.vercel.app";
 
 export function emailConfigured(): boolean {
@@ -32,7 +32,7 @@ export async function sendDraftValidationEmail({
 
   const approveUrl = `${APP_URL}/api/approve/${approveToken}`;
   const rejectUrl = `${APP_URL}/api/reject/${rejectToken}`;
-  const workspaceUrl = `${APP_URL}/workspace`;
+  const workspaceUrl = `${APP_URL}/workspace#draft-${draftId}`;
 
   const firstName = name.split(" ")[0] || name;
   const previewText = `Votre post LinkedIn du jour est prêt — "${draftTitle}"`;
@@ -53,7 +53,7 @@ export async function sendDraftValidationEmail({
 
     <!-- Header -->
     <div style="margin-bottom:24px;">
-      <span style="font-size:13px;font-weight:700;letter-spacing:-0.02em;color:#13110f;">LeadMachine</span>
+      <span style="font-size:13px;font-weight:700;letter-spacing:-0.02em;color:#13110f;">PostPilote</span>
     </div>
 
     <!-- Card -->
@@ -97,7 +97,7 @@ export async function sendDraftValidationEmail({
 
     <!-- Footer -->
     <p style="margin:20px 0 0;text-align:center;font-size:11px;color:#a8a29e;">
-      LeadMachine · Vous pilotez, l'IA exécute · <a href="${workspaceUrl}" style="color:#a8a29e;">Gérer mes préférences</a>
+      PostPilote · Vous pilotez, l'IA exécute · <a href="${workspaceUrl}" style="color:#a8a29e;">Gérer mes préférences</a>
     </p>
   </div>
 </body>
@@ -146,7 +146,7 @@ export async function sendApprovalConfirmationEmail({
       Bonjour ${escapeHtml(firstName)}, votre post <strong>"${escapeHtml(draftTitle)}"</strong> a bien été approuvé et est ${scheduled}.
     </p>
     <div style="margin:20px 0 0;padding:16px;background:#f0fdf4;border-radius:12px;border:1px solid #bbf7d0;">
-      <p style="margin:0;font-size:13px;color:#166534;">LeadMachine s'occupe du reste. Vous serez notifié une fois le post publié.</p>
+      <p style="margin:0;font-size:13px;color:#166534;">PostPilote s'occupe du reste. Vous serez notifié une fois le post publié.</p>
     </div>
   </div>
 </body>

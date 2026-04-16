@@ -21,7 +21,7 @@ export default function UpgradePage() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <nav className="mx-auto flex max-w-4xl items-center justify-between px-5 py-5 sm:px-8">
-        <Link href="/" className="text-sm font-bold tracking-[-0.02em] text-stone-900">LeadMachine</Link>
+        <Link href="/" className="text-sm font-bold tracking-[-0.02em] text-stone-900">PostPilote</Link>
         <Link href="/workspace" className="text-sm text-stone-500 transition hover:text-stone-800">Mon workspace</Link>
       </nav>
 

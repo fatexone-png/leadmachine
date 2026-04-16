@@ -31,7 +31,7 @@ export async function POST(request: Request) {
   try {
     const response = await fetch(url.toString(), {
       headers: {
-        "User-Agent": "Mozilla/5.0 (compatible; LeadMachine/1.0; +https://tail-rho.vercel.app)",
+        "User-Agent": "Mozilla/5.0 (compatible; PostPilote/1.0; +https://tail-rho.vercel.app)",
         Accept: "text/html,application/xhtml+xml",
       },
       signal: AbortSignal.timeout(12000),

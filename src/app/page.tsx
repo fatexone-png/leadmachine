@@ -8,9 +8,9 @@ import { getSession } from "@/lib/session";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "LeadMachine | Publiez sur LinkedIn sans passer votre temps à écrire",
+  title: "PostPilote | Publiez sur LinkedIn sans passer votre temps à écrire",
   description:
-    "LeadMachine capte des signaux, propose des commentaires et pousse les bons sujets vers la publication LinkedIn.",
+    "PostPilote capte des signaux, propose des commentaires et pousse les bons sujets vers la publication LinkedIn.",
 };
 
 type PageProps = {

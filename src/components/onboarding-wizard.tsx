@@ -76,7 +76,7 @@ export function OnboardingWizard({ linkedInConnected, hasWebsiteAnalyzed, userNa
               Connectez votre LinkedIn
             </h2>
             <p className="mt-3 text-sm leading-7 text-stone-600">
-              LeadMachine a besoin d'accéder à votre compte LinkedIn pour publier en votre nom.
+              PostPilote a besoin d'accéder à votre compte LinkedIn pour publier en votre nom.
               Vous garderez le contrôle total — chaque post est soumis à votre validation avant publication.
             </p>
             <div className="mt-8 flex flex-col gap-3">
@@ -187,7 +187,7 @@ export function OnboardingWizard({ linkedInConnected, hasWebsiteAnalyzed, userNa
               Vous êtes prêt(e)
             </h2>
             <p className="mt-3 text-sm leading-7 text-stone-600">
-              LeadMachine est configuré. Voici comment il va travailler pour vous :
+              PostPilote est configuré. Voici comment il va travailler pour vous :
             </p>
 
             <div className="mt-6 grid gap-3">
