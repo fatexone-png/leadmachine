@@ -72,7 +72,7 @@ export function Dashboard({ data, notices, environment }: DashboardProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const isNewUser = !data.brandProfile.bio && data.drafts.length === 0;
-  const [activeTab, setActiveTab] = useState<Tab>(isNewUser ? "fondations" : "studio");
+  const [activeTab, setActiveTab] = useState<Tab>(isNewUser ? "fondations" : "pilotage");
   const [showMobileDetail, setShowMobileDetail] = useState(false);
   const [toast, setToast] = useState<{ message: string; isError: boolean } | null>(null);
   const [copiedCommentIndex, setCopiedCommentIndex] = useState<number | null>(null);
@@ -521,7 +521,7 @@ export function Dashboard({ data, notices, environment }: DashboardProps) {
 
       {/* ── Tab bar ── */}
       <nav className="relative z-10 flex h-12 shrink-0 items-stretch border-b border-black/8 bg-white/80 backdrop-blur">
-        {(["pilotage", "studio", "calendrier", "fondations"] as Tab[]).map((tab) => (
+        {(["fondations", "pilotage", "studio", "calendrier"] as Tab[]).map((tab) => (
           <button
             key={tab}
             type="button"
